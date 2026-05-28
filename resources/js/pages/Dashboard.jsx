@@ -186,7 +186,7 @@ export default function Dashboard() {
 
                                 <div className="deadline-item">
                                     <div className="deadline-item__date deadline-item__date--red">
-                                        <p className="deadline-item__month">OKT</p>
+                                        <p className="deadline-item__month">Mei</p>
                                         <p className="deadline-item__day">24</p>
                                     </div>
                                     <div>
