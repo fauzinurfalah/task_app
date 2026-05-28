@@ -136,15 +136,15 @@ export default function Dashboard() {
 
                         <div className="task-list">
                             <TaskItem
-                                title="Review Algoritma Sorting"
-                                badge="CS 201"
+                                title="Algoritma"
+                                badge="Matematika"
                                 badgeVariant="indigo"
                                 time="14:00"
                                 timeVariant="red"
                             />
                             <TaskItem
-                                title="Submit Draft Laporan Lab"
-                                badge="Physics"
+                                title="Komputasi Awan"
+                                badge="Teknik Komputer"
                                 badgeVariant="orange"
                                 time="18:00"
                                 timeVariant="gray"
@@ -160,15 +160,15 @@ export default function Dashboard() {
                                 <CourseCard
                                     icon={<Code2 size={20} color="#4338ca" />}
                                     iconVariant="indigo"
-                                    title="Data Structures"
-                                    sub="3 SKS • Lab A1"
+                                    title="Kecerdasan Buatan"
+                                    sub="3 SKS • Lab 1"
                                     progress={75}
                                 />
                                 <CourseCard
                                     icon={<Calculator size={20} color="#ea580c" />}
                                     iconVariant="orange"
-                                    title="Calculus II"
-                                    sub="4 SKS • Room 402"
+                                    title="Mobile Programming Lanjut"
+                                    sub="4 SKS • Lab 2"
                                     progress={40}
                                 />
                             </div>
@@ -191,13 +191,13 @@ export default function Dashboard() {
                                     </div>
                                     <div>
                                         <p className="deadline-item__title">Ujian Tengah Semester - AI</p>
-                                        <p className="deadline-item__sub">Aula Utama • 09:00 AM</p>
+                                        <p className="deadline-item__sub"> 09:00 AM</p>
                                     </div>
                                 </div>
 
                                 <div className="deadline-item">
                                     <div className="deadline-item__date deadline-item__date--indigo">
-                                        <p className="deadline-item__month">OKT</p>
+                                        <p className="deadline-item__month">Mei</p>
                                         <p className="deadline-item__day">26</p>
                                     </div>
                                     <div>
@@ -217,7 +217,7 @@ export default function Dashboard() {
 
                                 <div className="activity-item">
                                     <div className="activity-item__dot dot--active" />
-                                    <p className="activity-item__title">Mengunggah Tugas Physics</p>
+                                    <p className="activity-item__title">Mengunggah Tugas Algoritma</p>
                                     <p className="activity-item__time">10 Menit yang lalu</p>
                                 </div>
 
@@ -229,7 +229,7 @@ export default function Dashboard() {
 
                                 <div className="activity-item">
                                     <div className="activity-item__dot dot--inactive" />
-                                    <p className="activity-item__title">Mencatat Kursus Calculus</p>
+                                    <p className="activity-item__title">Diskusi Grup: Komputasi Awan</p>
                                     <p className="activity-item__time">Kemarin</p>
                                 </div>
 
