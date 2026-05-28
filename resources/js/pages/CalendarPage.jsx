@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Sidebar from "../components/Sidebar";
 import {
     ChevronLeft,
@@ -9,8 +9,8 @@ import {
     BookOpen,
     Users,
     Clock,
-    Timer,
     Zap,
+    Info,
 } from "lucide-react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -31,7 +31,7 @@ function pad(n) {
     return String(n).padStart(2, "0");
 }
 
-// ─── Sample Events (pakai tanggal relatif ke bulan ini) ──────────────────────
+// ─── Sample Events ────────────────────────────────────────────────────────────
 function buildEvents() {
     const now = new Date();
     const y = now.getFullYear();
@@ -42,7 +42,6 @@ function buildEvents() {
             date: `${y}-${m}-03`,
             label: "Quiz Komputasi Awan",
             type: "exam",
-            color: "event--exam",
             time: "09:00",
             location: "Online Submit",
         },
@@ -51,16 +50,14 @@ function buildEvents() {
             date: `${y}-${m}-08`,
             label: "Mobile Programming Lanjut",
             type: "assignment",
-            color: "event--assignment",
             time: "11:59",
             location: "Online Submit",
         },
         {
             id: 3,
             date: `${y}-${m}-14`,
-            label: "Ujian Tengah Semester - AI",
+            label: "Quiz Kecerdasan Buatan",
             type: "exam",
-            color: "event--exam",
             time: "09:00",
             location: "Online Submit",
         },
@@ -69,7 +66,6 @@ function buildEvents() {
             date: `${y}-${m}-23`,
             label: "Tugas Kelompok - Jaringan Komputer",
             type: "assignment",
-            color: "event--assignment",
             time: "23:59",
             location: "Online Submit",
         },
@@ -78,7 +74,6 @@ function buildEvents() {
             date: `${y}-${m}-28`,
             label: "Web Programming Lanjut",
             type: "meeting",
-            color: "event--meeting",
             time: "14:30",
             location: "Online Submit",
         },
@@ -86,6 +81,13 @@ function buildEvents() {
 }
 
 const EVENTS = buildEvents();
+
+// ─── Type config ──────────────────────────────────────────────────────────────
+const TYPE_CONFIG = {
+    exam:       { bg: "#fee2e2", color: "#dc2626", label: "EXAM" },
+    assignment: { bg: "#eef2ff", color: "#4338ca", label: "ASSIGNMENT" },
+    meeting:    { bg: "#f0fdf4", color: "#16a34a", label: "MEETING" },
+};
 
 // ─── Countdown helper ─────────────────────────────────────────────────────────
 function getCountdown(eventDateStr, eventTime, now) {
@@ -101,37 +103,126 @@ function getCountdown(eventDateStr, eventTime, now) {
     return { days, hours, mins, secs, diff };
 }
 
-// ─── Event Icon ────────────────────────────────────────────────────────────────
-function EventIcon({ type }) {
-    if (type === "exam")       return <AlertTriangle size={10} />;
-    if (type === "assignment") return <BookOpen size={10} />;
-    return <Users size={10} />;
+// ─── Event Icon ───────────────────────────────────────────────────────────────
+function EventTypeIcon({ type, size = 11 }) {
+    if (type === "exam")       return <AlertTriangle size={size} />;
+    if (type === "assignment") return <BookOpen size={size} />;
+    return <Users size={size} />;
 }
 
-// ─── Event Pill ────────────────────────────────────────────────────────────────
-function EventPill({ event }) {
+// ─── Event Dot  ────────────────────────────────────
+function EventDot({ event }) {
+    const [visible, setVisible] = useState(false);
+    const [pos, setPos] = useState({ top: 0, left: 0 });
+    const ref = useRef(null);
+    const tooltipRef = useRef(null);
+    const cfg = TYPE_CONFIG[event.type] || TYPE_CONFIG.meeting;
+
+    function toggle(e) {
+        e.stopPropagation();
+        if (!visible && ref.current) {
+            const r = ref.current.getBoundingClientRect();
+            const left = Math.min(r.left, window.innerWidth - 250);
+            const top  = r.bottom + 8;
+            setPos({ top, left });
+        }
+        setVisible(v => !v);
+    }
+
+    useEffect(() => {
+        if (!visible) return;
+        function handleOutside(e) {
+            if (
+                ref.current && !ref.current.contains(e.target) &&
+                tooltipRef.current && !tooltipRef.current.contains(e.target)
+            ) {
+                setVisible(false);
+            }
+        }
+        document.addEventListener("mousedown", handleOutside);
+        return () => document.removeEventListener("mousedown", handleOutside);
+    }, [visible]);
+
     return (
-        <div className={`cal-event ${event.color}`}>
-            <EventIcon type={event.type} />
-            <span>{event.label}</span>
-        </div>
+        <>
+            {/* Icon dot */}
+            <div
+                ref={ref}
+                onClick={toggle}
+                style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 20,
+                    height: 20,
+                    borderRadius: "50%",
+                    background: visible ? cfg.color : cfg.bg,
+                    color: visible ? "white" : cfg.color,
+                    cursor: "pointer",
+                    flexShrink: 0,
+                    transition: "background 0.15s, color 0.15s, transform 0.15s",
+                    transform: visible ? "scale(1.15)" : "scale(1)",
+                    boxShadow: visible ? `0 2px 8px ${cfg.color}55` : "none",
+                }}
+            >
+                <Info size={10} />
+            </div>
+
+            {/* Popup */}
+            {visible && (
+                <div
+                    ref={tooltipRef}
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                        position: "fixed",
+                        top: pos.top,
+                        left: pos.left,
+                        zIndex: 99999,
+                        background: "white",
+                        border: `1.5px solid ${cfg.color}33`,
+                        borderRadius: 14,
+                        padding: "12px 14px",
+                        minWidth: 210,
+                        maxWidth: 260,
+                        boxShadow: "0 8px 30px rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.08)",
+                        animation: "tooltipFadeIn 0.15s ease",
+                    }}
+                >
+                    {/* Header */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5, color: cfg.color }}>
+                        <EventTypeIcon type={event.type} size={12} />
+                        <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: 1 }}>
+                            {cfg.label}
+                        </span>
+                    </div>
+                    {/* Task name */}
+                    <p style={{ fontSize: 13, fontWeight: 800, color: "#111827", margin: "0 0 6px", lineHeight: 1.3 }}>
+                        {event.label}
+                    </p>
+                    {/* Meta */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#6b7280" }}>
+                        <Clock size={10} />
+                        <span>{event.time}</span>
+                        <span style={{ color: "#d1d5db" }}>·</span>
+                        <span>{event.location}</span>
+                    </div>
+                </div>
+            )}
+        </>
     );
 }
 
 // ─── Live Clock Component ──────────────────────────────────────────────────────
 function LiveClock({ now }) {
-    const h   = pad(now.getHours());
-    const min = pad(now.getMinutes());
-    const sec = pad(now.getSeconds());
+    const min  = pad(now.getMinutes());
+    const sec  = pad(now.getSeconds());
     const ampm = now.getHours() >= 12 ? "PM" : "AM";
-    const h12 = now.getHours() % 12 || 12;
+    const h12  = now.getHours() % 12 || 12;
 
     return (
         <div className="live-clock">
             <div className="live-clock__display">
-                <span className="live-clock__time">
-                    {pad(h12)}:{min}
-                </span>
+                <span className="live-clock__time">{pad(h12)}:{min}</span>
                 <span className="live-clock__sec">{sec}</span>
                 <span className="live-clock__ampm">{ampm}</span>
             </div>
@@ -144,8 +235,7 @@ function LiveClock({ now }) {
 function CountdownCard({ event, now }) {
     const cd = getCountdown(event.date, event.time, now);
     if (!cd) return null;
-
-    const isUrgent = cd.diff < 86400000; // less than 1 day
+    const isUrgent = cd.diff < 86400000;
 
     return (
         <div className={`countdown-card ${isUrgent ? "countdown-card--urgent" : ""}`}>
@@ -172,9 +262,7 @@ function CountdownCard({ event, now }) {
                 </div>
                 <div className="countdown-sep">:</div>
                 <div className="countdown-unit">
-                    <span className={`countdown-unit__num ${isUrgent ? "tick" : ""}`}>
-                        {pad(cd.secs)}
-                    </span>
+                    <span className={`countdown-unit__num ${isUrgent ? "tick" : ""}`}>{pad(cd.secs)}</span>
                     <span className="countdown-unit__label">Secs</span>
                 </div>
             </div>
@@ -188,13 +276,13 @@ function AgendaItem({ event, now }) {
     const [h, min] = event.time.split(":").map(Number);
     const eventDate = new Date(event.date);
     eventDate.setHours(h, min, 0, 0);
-    const isPast    = eventDate < now;
-    const isToday   = event.date === `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+    const isPast  = eventDate < now;
+    const isToday = event.date === `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
 
     const tagMap = {
         exam:       { cls: "agenda-tag--exam",       label: "EXAM"       },
         assignment: { cls: "agenda-tag--assignment",  label: "ASSIGNMENT" },
-        meeting:    { cls: "agenda-tag--meeting",      label: "MEETING"    },
+        meeting:    { cls: "agenda-tag--meeting",     label: "MEETING"    },
     };
     const tag = tagMap[event.type];
 
@@ -222,7 +310,6 @@ export default function CalendarPage() {
         month: now.getMonth(),
     });
 
-    // ── Realtime tick (setiap detik) ──────────────────────────────────────────
     useEffect(() => {
         const timer = setInterval(() => setNow(new Date()), 1000);
         return () => clearInterval(timer);
@@ -233,7 +320,7 @@ export default function CalendarPage() {
     const firstDay    = getFirstDayOfMonth(year, month);
     const daysInPrev  = getDaysInMonth(year, month - 1);
 
-    // Build grid cells (6 rows × 7 cols = 42)
+    // Build grid cells 
     const cells = [];
     for (let i = firstDay - 1; i >= 0; i--) {
         cells.push({ day: daysInPrev - i, currentMonth: false, prevMonth: true });
@@ -248,13 +335,13 @@ export default function CalendarPage() {
 
     const prevMonth = () =>
         setCurrent(c => ({
-            year: c.month === 0 ? c.year - 1 : c.year,
+            year:  c.month === 0 ? c.year - 1 : c.year,
             month: c.month === 0 ? 11 : c.month - 1,
         }));
 
     const nextMonth = () =>
         setCurrent(c => ({
-            year: c.month === 11 ? c.year + 1 : c.year,
+            year:  c.month === 11 ? c.year + 1 : c.year,
             month: c.month === 11 ? 0 : c.month + 1,
         }));
 
@@ -277,7 +364,7 @@ export default function CalendarPage() {
     const exams     = EVENTS.filter(e => e.type === "exam"       && parseInt(e.date.split("-")[1])-1 === month).length;
     const deadlines = EVENTS.filter(e => e.type === "assignment" && parseInt(e.date.split("-")[1])-1 === month).length;
 
-    // Next upcoming event (for countdown)
+    // Next upcoming event
     const upcomingEvent = EVENTS
         .map(ev => {
             const [h, min] = ev.time.split(":").map(Number);
@@ -288,136 +375,140 @@ export default function CalendarPage() {
         .filter(ev => ev._ts > now)
         .sort((a, b) => a._ts - b._ts)[0];
 
-    // Today string
-    const todayStr = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
-    const dayLabel = FULL_DAY_NAMES[now.getDay()].toUpperCase();
+    const todayStr  = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+    const dayLabel  = FULL_DAY_NAMES[now.getDay()].toUpperCase();
     const dateLabel = `${dayLabel}, ${now.getDate()} ${MONTH_NAMES[now.getMonth()].toUpperCase()}`;
-
-    // Today's events (all events on today)
     const todayEvents = EVENTS.filter(e => e.date === todayStr);
 
     return (
-        <div className="app-wrapper">
-            <Sidebar />
+        <>
+            {/* Tooltip animation keyframe */}
+            <style>{`
+                @keyframes tooltipFadeIn {
+                    from { opacity: 0; transform: translateY(-4px); }
+                    to   { opacity: 1; transform: translateY(0); }
+                }
+            `}</style>
 
-            <main className="main-content cal-page">
+            <div className="app-wrapper">
+                <Sidebar />
 
-                {/* ── HEADER ── */}
-                <div className="cal-header">
-                    <div>
-                        <h1 className="cal-header__month">
-                            {MONTH_NAMES[month]} {year}
-                        </h1>
-                        <p className="cal-header__sub">
-                            {deadlines} deadline{deadlines !== 1 ? "s" : ""} and {exams} exam{exams !== 1 ? "s" : ""} this month
-                        </p>
-                    </div>
-                    <div className="cal-header__controls">
-                        <div className="cal-nav">
-                            <button className="cal-nav__btn" onClick={prevMonth}>
-                                <ChevronLeft size={16} />
-                            </button>
-                            <button className="cal-nav__today" onClick={goToday}>Today</button>
-                            <button className="cal-nav__btn" onClick={nextMonth}>
-                                <ChevronRight size={16} />
+                <main className="main-content cal-page">
+
+                    {/* ── HEADER ── */}
+                    <div className="cal-header">
+                        <div>
+                            <h1 className="cal-header__month">
+                                {MONTH_NAMES[month]} {year}
+                            </h1>
+                            <p className="cal-header__sub">
+                                {deadlines} deadline{deadlines !== 1 ? "s" : ""} and {exams} exam{exams !== 1 ? "s" : ""} this month
+                            </p>
+                        </div>
+                        <div className="cal-header__controls">
+                            <div className="cal-nav">
+                                <button className="cal-nav__btn" onClick={prevMonth}>
+                                    <ChevronLeft size={16} />
+                                </button>
+                                <button className="cal-nav__today" onClick={goToday}>Today</button>
+                                <button className="cal-nav__btn" onClick={nextMonth}>
+                                    <ChevronRight size={16} />
+                                </button>
+                            </div>
+                            <button className="btn-add-event">
+                                <Plus size={16} />
+                                Add Event
                             </button>
                         </div>
-                        <button className="btn-add-event">
-                            <Plus size={16} />
-                            Add Event
-                        </button>
                     </div>
-                </div>
 
-                {/* ── BODY ── */}
-                <div className="cal-body">
+                    {/* ── BODY ── */}
+                    <div className="cal-body">
 
-                    {/* ── CALENDAR GRID ── */}
-                    <div className="cal-grid-wrapper">
-                        <div className="cal-day-headers">
-                            {DAY_NAMES.map(d => (
-                                <div key={d} className="cal-day-header">{d}</div>
-                            ))}
-                        </div>
+                        {/* ── CALENDAR GRID ── */}
+                        <div className="cal-grid-wrapper">
+                            {/* Day headers */}
+                            <div className="cal-day-headers">
+                                {DAY_NAMES.map(d => (
+                                    <div key={d} className="cal-day-header">{d}</div>
+                                ))}
+                            </div>
 
-                        <div className="cal-cells">
-                            {cells.map((cell, idx) => {
-                                const isToday =
-                                    cell.currentMonth &&
-                                    cell.day === now.getDate() &&
-                                    month === now.getMonth() &&
-                                    year === now.getFullYear();
+                            {/* Cells */}
+                            <div className="cal-cells">
+                                {cells.map((cell, idx) => {
+                                    const isToday =
+                                        cell.currentMonth &&
+                                        cell.day === now.getDate() &&
+                                        month === now.getMonth() &&
+                                        year === now.getFullYear();
 
-                                return (
-                                    <div
-                                        key={idx}
-                                        className={[
-                                            "cal-cell",
-                                            !cell.currentMonth ? "cal-cell--other" : "",
-                                            isToday ? "cal-cell--today" : "",
-                                        ].join(" ")}
-                                    >
-                                        <span className={`cal-cell__num ${isToday ? "cal-cell__num--today" : ""}`}>
-                                            {cell.day}
-                                        </span>
+                                    const eventsOnDay = cell.currentMonth ? (eventMap[cell.day] || []) : [];
 
-                                        {/* Live time badge inside today cell */}
-                                        {isToday && (
-                                            <span className="cal-cell__live-time">
-                                                {pad(now.getHours() % 12 || 12)}:{pad(now.getMinutes())}
-                                                <span className="cal-cell__live-dot" />
+                                    return (
+                                        <div
+                                            key={idx}
+                                            className={[
+                                                "cal-cell",
+                                                !cell.currentMonth ? "cal-cell--other" : "",
+                                                isToday ? "cal-cell--today" : "",
+                                            ].join(" ")}
+                                        >
+                                            <span className={`cal-cell__num ${isToday ? "cal-cell__num--today" : ""}`}>
+                                                {cell.day}
                                             </span>
-                                        )}
 
-                                        {cell.currentMonth && eventMap[cell.day] && (
-                                            <div className="cal-cell__events">
-                                                {eventMap[cell.day].map(ev => (
-                                                    <EventPill key={ev.id} event={ev} />
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
+                                            {isToday && (
+                                                <span className="cal-cell__live-time">
+                                                    {pad(now.getHours() % 12 || 12)}:{pad(now.getMinutes())}
+                                                    <span className="cal-cell__live-dot" />
+                                                </span>
+                                            )}
+
+                                            {eventsOnDay.length > 0 && (
+                                                <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginTop: 2 }}>
+                                                    {eventsOnDay.map(ev => (
+                                                        <EventDot key={ev.id} event={ev} />
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
-                    </div>
 
-                    {/* ── AGENDA PANEL ── */}
-                    <div className="agenda-panel">
+                        {/* ── AGENDA PANEL ── */}
+                        <div className="agenda-panel">
+                            <LiveClock now={now} />
 
-                        {/* Live Clock */}
-                        <LiveClock now={now} />
+                            <h2 className="agenda-panel__title">Today's Agenda</h2>
+                            <p className="agenda-panel__date">{dateLabel}</p>
 
-                        <h2 className="agenda-panel__title">Today's Agenda</h2>
-                        <p className="agenda-panel__date">{dateLabel}</p>
-
-                        {/* Countdown to next event */}
-                        {upcomingEvent && (
-                            <CountdownCard event={upcomingEvent} now={now} />
-                        )}
-
-                        {/* Today's events list */}
-                        <div className="agenda-list">
-                            {todayEvents.length > 0 ? (
-                                todayEvents.map(ev => (
-                                    <AgendaItem key={ev.id} event={ev} now={now} />
-                                ))
-                            ) : (
-                                /* Show upcoming month events */
-                                EVENTS.slice(0, 3).map(ev => (
-                                    <AgendaItem key={ev.id} event={ev} now={now} />
-                                ))
+                            {upcomingEvent && (
+                                <CountdownCard event={upcomingEvent} now={now} />
                             )}
+
+                            <div className="agenda-list">
+                                {todayEvents.length > 0
+                                    ? todayEvents.map(ev => (
+                                        <AgendaItem key={ev.id} event={ev} now={now} />
+                                    ))
+                                    : EVENTS.slice(0, 3).map(ev => (
+                                        <AgendaItem key={ev.id} event={ev} now={now} />
+                                    ))
+                                }
+                            </div>
+
+                            <button className="btn-schedule">
+                                <CalendarCheck2 size={16} />
+                                View Full Schedule
+                            </button>
                         </div>
 
-                        <button className="btn-schedule">
-                            <CalendarCheck2 size={16} />
-                            View Full Schedule
-                        </button>
                     </div>
-
-                </div>
-            </main>
-        </div>
+                </main>
+            </div>
+        </>
     );
 }

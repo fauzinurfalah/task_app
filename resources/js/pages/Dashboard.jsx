@@ -190,7 +190,7 @@ export default function Dashboard() {
                                         <p className="deadline-item__day">24</p>
                                     </div>
                                     <div>
-                                        <p className="deadline-item__title">Ujian Tengah Semester - AI</p>
+                                        <p className="deadline-item__title">Quiz Kecerdasan Buatan</p>
                                         <p className="deadline-item__sub"> 09:00 AM</p>
                                     </div>
                                 </div>
