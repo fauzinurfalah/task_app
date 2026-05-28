@@ -40,16 +40,16 @@ function buildEvents() {
         {
             id: 1,
             date: `${y}-${m}-03`,
-            label: "MATH 101 Quiz",
+            label: "Quiz Komputasi Awan",
             type: "exam",
             color: "event--exam",
             time: "09:00",
-            location: "Room 301",
+            location: "Online Submit",
         },
         {
             id: 2,
             date: `${y}-${m}-08`,
-            label: "CS History Essay",
+            label: "Mobile Programming Lanjut",
             type: "assignment",
             color: "event--assignment",
             time: "11:59",
@@ -58,16 +58,16 @@ function buildEvents() {
         {
             id: 3,
             date: `${y}-${m}-14`,
-            label: "PHYSICS Midterm",
+            label: "Ujian Tengah Semester - AI",
             type: "exam",
             color: "event--exam",
             time: "09:00",
-            location: "Main Hall, Room 402",
+            location: "Online Submit",
         },
         {
             id: 4,
             date: `${y}-${m}-23`,
-            label: "Group Project Due",
+            label: "Tugas Kelompok - Jaringan Komputer",
             type: "assignment",
             color: "event--assignment",
             time: "23:59",
@@ -76,11 +76,11 @@ function buildEvents() {
         {
             id: 5,
             date: `${y}-${m}-28`,
-            label: "Lab Prep Session",
+            label: "Web Programming Lanjut",
             type: "meeting",
             color: "event--meeting",
             time: "14:30",
-            location: "Library – Study Room B",
+            location: "Online Submit",
         },
     ];
 }
