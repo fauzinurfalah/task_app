@@ -14,17 +14,17 @@ const Register = () => {
         e.preventDefault();
         setLoading(true);
         setError('');
-        
+
         try {
             const response = await axios.post('/api/register', {
                 name,
                 email,
                 password
             });
-            
+
             // Optionally auto-login or just redirect to login page
             alert('Registration successful! Please login.');
-            navigate('/login');
+            navigate('/');
         } catch (err) {
             setError(err.response?.data?.message || 'Registration failed. Please check your inputs.');
             // Note: Validation errors are usually in err.response.data.errors
@@ -41,13 +41,13 @@ const Register = () => {
         <div className="flex items-center justify-center min-h-screen bg-gray-100">
             <div className="w-full max-w-md p-8 space-y-6 bg-white rounded shadow">
                 <h2 className="text-2xl font-bold text-center text-gray-900">Register</h2>
-                
+
                 {error && (
                     <div className="p-3 text-sm text-red-600 bg-red-100 rounded">
                         {error}
                     </div>
                 )}
-                
+
                 <form className="space-y-4" onSubmit={handleRegister}>
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Name</label>
@@ -59,7 +59,7 @@ const Register = () => {
                             onChange={(e) => setName(e.target.value)}
                         />
                     </div>
-                    
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Email</label>
                         <input
@@ -70,7 +70,7 @@ const Register = () => {
                             onChange={(e) => setEmail(e.target.value)}
                         />
                     </div>
-                    
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Password</label>
                         <input
@@ -81,7 +81,7 @@ const Register = () => {
                             onChange={(e) => setPassword(e.target.value)}
                         />
                     </div>
-                    
+
                     <button
                         type="submit"
                         disabled={loading}
