@@ -1,4 +1,4 @@
-import Sidebar from "../components/Sidebar";
+import Sidebar from "../../components/Sidebar";
 import { Search, Bell, Plus, Clock3, Code2, Calculator } from "lucide-react";
 
 // ─── Circular Progress ───────────────────────────────────────────────────────
@@ -83,13 +83,13 @@ function CourseCard({ icon, iconVariant, title, sub, progress }) {
     );
 }
 
-// ─── Dashboard ────────────────────────────────────────────────────────────────
-export default function Dashboard() {
+// ─── Mahasiswa Dashboard ───────────────────────────────────────────────────────
+export default function MahasiswaDashboard() {
     return (
         <div className="app-wrapper">
 
             {/* SIDEBAR */}
-            <Sidebar />
+            <Sidebar role="mahasiswa" />
 
             {/* MAIN */}
             <main className="main-content">
