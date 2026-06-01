@@ -24,7 +24,7 @@ const Login = () => {
             localStorage.setItem('user', JSON.stringify(response.data.user));
             
             // Redirect to dashboard
-            navigate('/dashboard');
+            navigate('/mahasiswa');
         } catch (err) {
             setError(err.response?.data?.message || 'Login failed. Please try again.');
         } finally {
