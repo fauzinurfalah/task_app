@@ -14,38 +14,38 @@ import {
 // ─── Navigation links per role ────────────────────────────────────────────────
 const NAV_LINKS = {
     mahasiswa: [
-        { to: "/mahasiswa",           icon: <LayoutDashboard size={18} />, label: "Dashboard" },
-        { to: "/mahasiswa/tasks",     icon: <ClipboardList   size={18} />, label: "Tugas"     },
-        { to: "/mahasiswa/calendar",  icon: <CalendarDays    size={18} />, label: "Kalender"  },
-        { to: "/profile",             icon: <User            size={18} />, label: "Profil"    },
+        { to: "/mahasiswa", icon: <LayoutDashboard size={18} />, label: "Dashboard" },
+        { to: "/mahasiswa/tasks", icon: <ClipboardList size={18} />, label: "Tugas" },
+        { to: "/mahasiswa/calendar", icon: <CalendarDays size={18} />, label: "Kalender" },
+        { to: "/mahasiswa/profile", icon: <User size={18} />, label: "Profil" },
     ],
     dosen: [
-        { to: "/dosen",               icon: <LayoutDashboard size={18} />, label: "Dashboard"    },
-        { to: "/dosen/tasks",         icon: <BookOpen        size={18} />, label: "Kelola Tugas" },
-        { to: "/dosen/submissions",   icon: <Upload          size={18} />, label: "Pengumpulan"  },
-        { to: "/dosen/grading",       icon: <Star            size={18} />, label: "Penilaian"    },
-        { to: "/dosen/students",      icon: <Users           size={18} />, label: "Mahasiswa"    },
-        { to: "/dosen/calendar",      icon: <CalendarDays    size={18} />, label: "Kalender"     },
-        { to: "/dosen/profile",       icon: <User            size={18} />, label: "Profil"       },
+        { to: "/dosen", icon: <LayoutDashboard size={18} />, label: "Dashboard" },
+        { to: "/dosen/tasks", icon: <BookOpen size={18} />, label: "Kelola Tugas" },
+        { to: "/dosen/submissions", icon: <Upload size={18} />, label: "Pengumpulan" },
+        { to: "/dosen/grading", icon: <Star size={18} />, label: "Penilaian" },
+        { to: "/dosen/students", icon: <Users size={18} />, label: "Mahasiswa" },
+        { to: "/dosen/calendar", icon: <CalendarDays size={18} />, label: "Kalender" },
+        { to: "/dosen/profile", icon: <User size={18} />, label: "Profil" },
     ],
 };
 
 // ─── Role badge styling ───────────────────────────────────────────────────────
 const ROLE_META = {
     mahasiswa: {
-        icon:  <GraduationCap size={14} />,
+        icon: <GraduationCap size={14} />,
         label: "Mahasiswa",
-        cls:   "role-badge--mahasiswa",
-        name:  "Fauzi",
-        sub:   "Ilmu Komputer",
+        cls: "role-badge--mahasiswa",
+        name: "Fauzi",
+        sub: "Ilmu Komputer",
         avatar: "F",
     },
     dosen: {
-        icon:  <BookOpen size={14} />,
+        icon: <BookOpen size={14} />,
         label: "Dosen",
-        cls:   "role-badge--dosen",
-        name:  "Dr. Budi",
-        sub:   "Teknik Informatika",
+        cls: "role-badge--dosen",
+        name: "Dr. Budi",
+        sub: "Teknik Informatika",
         avatar: "B",
     },
 };
@@ -53,9 +53,9 @@ const ROLE_META = {
 
 export default function Sidebar({ role = "mahasiswa" }) {
     const location = useLocation();
-    const path     = location.pathname;
-    const links    = NAV_LINKS[role] || NAV_LINKS.mahasiswa;
-    const meta     = ROLE_META[role]  || ROLE_META.mahasiswa;
+    const path = location.pathname;
+    const links = NAV_LINKS[role] || NAV_LINKS.mahasiswa;
+    const meta = ROLE_META[role] || ROLE_META.mahasiswa;
 
     return (
         <div className="sidebar">

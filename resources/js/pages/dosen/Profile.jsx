@@ -9,15 +9,15 @@ import {
 export default function DosenProfile() {
     const [editing, setEditing] = useState(false);
     const [form, setForm] = useState({
-        name:     "Dr. Budi Santoso, M.T.",
-        nip:      "197805102005011003",
-        email:    "budi.santoso@university.ac.id",
-        phone:    "+62 812 3456 7890",
-        address:  "Jl. Universitas No. 5, Jakarta",
-        dept:     "Teknik Informatika",
-        faculty:  "Fakultas Ilmu Komputer",
+        name: "Dr. Budi Santoso, M.T.",
+        nip: "197805102005011003",
+        email: "budi.santoso@university.ac.id",
+        phone: "+62 812 3456 7890",
+        address: "Jl. Universitas No. 5, Jakarta",
+        dept: "Teknik Informatika",
+        faculty: "Fakultas Ilmu Komputer",
         position: "Lektor Kepala",
-        bio:      "Dosen dengan spesialisasi di bidang Algoritma, Kecerdasan Buatan, dan Jaringan Komputer. Memiliki pengalaman mengajar lebih dari 15 tahun dan aktif dalam penelitian Machine Learning terapan.",
+        bio: "Dosen dengan spesialisasi di bidang Algoritma, Kecerdasan Buatan, dan Jaringan Komputer. Memiliki pengalaman mengajar lebih dari 15 tahun dan aktif dalam penelitian Machine Learning terapan.",
     });
     const [draft, setDraft] = useState({ ...form });
 
@@ -27,15 +27,15 @@ export default function DosenProfile() {
 
     const COURSES = [
         { name: "Algoritma & Pemrograman", students: 42, variant: "indigo" },
-        { name: "Jaringan Komputer",        students: 35, variant: "orange" },
-        { name: "Kecerdasan Buatan",        students: 30, variant: "purple" },
+        { name: "Jaringan Komputer", students: 35, variant: "orange" },
+        { name: "Kecerdasan Buatan", students: 30, variant: "purple" },
     ];
 
     const STATS = [
-        { icon: <Users size={20} color="#4338ca" />,       bg: "icon-bg--indigo",  label: "Total Mahasiswa", val: "107"   },
-        { icon: <BookOpen size={20} color="#ea580c" />,    bg: "icon-bg--orange",  label: "Mata Kuliah",     val: "3"     },
-        { icon: <CheckCircle2 size={20} color="#16a34a" />,bg: "icon-bg--green",   label: "Tugas Aktif",     val: "6"     },
-        { icon: <Award size={20} color="#7c3aed" />,       bg: "icon-bg--purple",  label: "Rata-rata Nilai", val: "82.4"  },
+        { icon: <Users size={20} color="#4338ca" />, bg: "icon-bg--indigo", label: "Total Mahasiswa", val: "107" },
+        { icon: <BookOpen size={20} color="#ea580c" />, bg: "icon-bg--orange", label: "Mata Kuliah", val: "3" },
+        { icon: <CheckCircle2 size={20} color="#16a34a" />, bg: "icon-bg--green", label: "Tugas Aktif", val: "6" },
+        { icon: <Award size={20} color="#7c3aed" />, bg: "icon-bg--purple", label: "Rata-rata Nilai", val: "82.4" },
     ];
 
     function Field({ label, value, field, multiline }) {
@@ -67,7 +67,7 @@ export default function DosenProfile() {
                         : <div style={{ display: "flex", gap: 8 }}>
                             <button className="btn-primary" style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 18px", fontSize: 13 }} onClick={handleSave}><Save size={14} /> Simpan</button>
                             <button className="btn-outline" style={{ margin: 0, width: "auto", padding: "10px 18px", fontSize: 13, display: "flex", alignItems: "center", gap: 6 }} onClick={handleCancel}><X size={14} /> Batal</button>
-                          </div>
+                        </div>
                     }
                 </div>
 
@@ -100,12 +100,12 @@ export default function DosenProfile() {
                         {/* Info form */}
                         <div className="card">
                             <h2 className="card__title">Informasi Pribadi</h2>
-                            <Field label="Nama Lengkap"   value={form.name}     field="name"     />
-                            <Field label="NIP"            value={form.nip}      field="nip"      />
-                            <Field label="Jabatan"        value={form.position} field="position" />
-                            <Field label="Departemen"     value={form.dept}     field="dept"     />
-                            <Field label="Fakultas"       value={form.faculty}  field="faculty"  />
-                            <Field label="Bio / Tentang"  value={form.bio}      field="bio"      multiline />
+                            <Field label="Nama Lengkap" value={form.name} field="name" />
+                            <Field label="NIP" value={form.nip} field="nip" />
+                            <Field label="Jabatan" value={form.position} field="position" />
+                            <Field label="Departemen" value={form.dept} field="dept" />
+                            <Field label="Fakultas" value={form.faculty} field="faculty" />
+                            <Field label="Bio / Tentang" value={form.bio} field="bio" multiline />
                         </div>
                     </div>
 
