@@ -428,7 +428,7 @@ export default function Tasks() {
                             <TaskCard key={task.id} task={task}
                                 onToggle={toggleTask}
                                 onDelete={deleteTask}
-                                onClick={t => navigate("/detail", { state: { task: t } })}
+                                onClick={t => navigate("/mahasiswa/detail", { state: { task: t } })}
                             />
                         ))
                     }
