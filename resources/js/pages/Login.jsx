@@ -20,11 +20,17 @@ const Login = () => {
                 password
             });
             
-            // On success, maybe save the user data in localStorage or state
+            // Simpan token & data user
+            localStorage.setItem('token', response.data.token);
             localStorage.setItem('user', JSON.stringify(response.data.user));
-            
-            // Redirect to dashboard
-            navigate('/dashboard');
+
+            // Redirect berdasarkan role
+            const role = response.data.user?.role;
+            if (role === 'dosen') {
+                navigate('/dosen');
+            } else {
+                navigate('/mahasiswa');
+            }
         } catch (err) {
             setError(err.response?.data?.message || 'Login failed. Please try again.');
         } finally {

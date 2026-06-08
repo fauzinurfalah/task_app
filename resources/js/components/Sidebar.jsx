@@ -50,12 +50,7 @@ const ROLE_META = {
     },
 };
 
-    const links = [
-        { to: "/dashboard",icon: <LayoutDashboard size={18} />, label: "Dashboard" },
-        { to: "/tasks",    icon: <ClipboardList   size={18} />, label: "Tasks"     },
-        { to: "/calendar", icon: <CalendarDays    size={18} />, label: "Calendar"  },
-        { to: "/profile",  icon: <User            size={18} />, label: "Profile"   },
-    ];
+
 export default function Sidebar({ role = "mahasiswa" }) {
     const location = useLocation();
     const path     = location.pathname;
@@ -78,7 +73,6 @@ export default function Sidebar({ role = "mahasiswa" }) {
             <nav className="sidebar__nav">
                 {links.map(({ to, icon, label }) => {
                     const isActive = to === "/dashboard" ? path === "/dashboard" : path.startsWith(to);
-                    const isActive = path === to;
                     return (
                         <Link
                             key={to}
