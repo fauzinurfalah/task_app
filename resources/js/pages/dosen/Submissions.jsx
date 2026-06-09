@@ -62,9 +62,6 @@ export default function DosenSubmissions() {
                         <h1 className="topbar__title">Pengumpulan Mahasiswa</h1>
                         <p className="topbar__subtitle">Pantau dan unduh semua file pengumpulan tugas.</p>
                     </div>
-                    <button className="btn-primary" style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 18px", fontSize: 13 }}>
-                        <Download size={15} /> Ekspor Semua
-                    </button>
                 </div>
 
                 {/* STAT CHIPS */}

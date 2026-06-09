@@ -24,24 +24,25 @@ import DosenProfile from "./pages/dosen/Profile";
 function App() {
     return (
         <Routes>
-            <Route path="/" element={<Login />} />
+            <Route path="/"         element={<Login />}    />
             <Route path="/register" element={<Register />} />
 
             {/* ── Mahasiswa Routes ── */}
-            <Route path="/"                   element={<MahasiswaDashboard />}  />
-            <Route path="/mahasiswa/tasks"    element={<MahasiswaTasks />}      />
-            <Route path="/mahasiswa/detail"   element={<MahasiswaDetailTask />} />
-            <Route path="/mahasiswa/calendar" element={<MahasiswaCalendar />}   />
+            <Route path="/mahasiswa"          element={<ProtectedRoute><MahasiswaDashboard /></ProtectedRoute>}  />
+            <Route path="/mahasiswa/tasks"    element={<ProtectedRoute><MahasiswaTasks /></ProtectedRoute>}      />
+            <Route path="/mahasiswa/detail"   element={<ProtectedRoute><MahasiswaDetailTask /></ProtectedRoute>} />
+            <Route path="/mahasiswa/calendar" element={<ProtectedRoute><MahasiswaCalendar /></ProtectedRoute>}   />
+            <Route path="/mahasiswa/profile"  element={<ProtectedRoute><MahasiswaProfile /></ProtectedRoute>}   />
 
             {/* ── Dosen Routes ── */}
-            <Route path="/dosen"                  element={<DosenDashboard />}   />
-            <Route path="/dosen/tasks"            element={<DosenManageTask />}  />
-            <Route path="/dosen/tasks/detail"     element={<DosenTaskDetail />}  />
-            <Route path="/dosen/submissions"      element={<DosenSubmissions />} />
-            <Route path="/dosen/grading"          element={<DosenGrading />}     />
-            <Route path="/dosen/students"         element={<DosenStudents />}    />
-            <Route path="/dosen/calendar"         element={<DosenCalendar />}    />
-            <Route path="/dosen/profile"          element={<DosenProfile />}     />
+            <Route path="/dosen"              element={<ProtectedRoute><DosenDashboard /></ProtectedRoute>}   />
+            <Route path="/dosen/tasks"        element={<ProtectedRoute><DosenManageTask /></ProtectedRoute>}  />
+            <Route path="/dosen/tasks/detail" element={<ProtectedRoute><DosenTaskDetail /></ProtectedRoute>}  />
+            <Route path="/dosen/submissions"  element={<ProtectedRoute><DosenSubmissions /></ProtectedRoute>} />
+            <Route path="/dosen/grading"      element={<ProtectedRoute><DosenGrading /></ProtectedRoute>}     />
+            <Route path="/dosen/students"     element={<ProtectedRoute><DosenStudents /></ProtectedRoute>}    />
+            <Route path="/dosen/calendar"     element={<ProtectedRoute><DosenCalendar /></ProtectedRoute>}    />
+            <Route path="/dosen/profile"      element={<ProtectedRoute><DosenProfile /></ProtectedRoute>}     />
         </Routes>
     );
 }

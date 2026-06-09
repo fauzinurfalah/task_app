@@ -239,11 +239,6 @@ export default function MahasiswaDashboard() {
 
                 </div>
 
-                {/* FAB */}
-                <button className="fab">
-                    <Plus size={24} />
-                </button>
-
             </main>
         </div>
     );
