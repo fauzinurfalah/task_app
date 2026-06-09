@@ -214,23 +214,15 @@ export default function DosenCalendarPage() {
             <div className="app-wrapper">
                 <Sidebar role="dosen" />
                 <main className="main-content cal-page">
-                    <div className="cal-header">
-                        <div className="cal-header__left">
-                            <div className="cal-header__title-row">
-                                <div className="cal-nav">
-                                    <button className="cal-nav__btn" onClick={prevMonth}><ChevronLeft size={16} /></button>
-                                    <h1 className="cal-header__month">{MONTH_NAMES[month]} {year}</h1>
-                                    <button className="cal-nav__btn" onClick={nextMonth}><ChevronRight size={16} /></button>
-                                </div>
-                            </div>
-                            <p className="cal-header__sub">{classes} kelas dan {gradings} deadline penilaian bulan ini</p>
-                        </div>
-                        <div className="cal-header__controls">
-                            <button className="btn-add-event"><Plus size={16} />Tambah Acara</button>
-                        </div>
-                    </div>
                     <div className="cal-body">
                         <div className="cal-grid-wrapper">
+                            {/* ── Month nav inside the calendar box ── */}
+                            <div className="cal-grid-nav">
+                                <button className="cal-grid-nav__btn" onClick={prevMonth}><ChevronLeft size={16} /></button>
+                                <h2 className="cal-grid-nav__title">{MONTH_NAMES[month]} {year}</h2>
+                                <button className="cal-grid-nav__btn" onClick={nextMonth}><ChevronRight size={16} /></button>
+                                <button className="cal-grid-nav__add" title="Tambah Acara"><Plus size={16} /></button>
+                            </div>
                             <div className="cal-day-headers">
                                 {DAY_NAMES.map(d => <div key={d} className="cal-day-header">{d}</div>)}
                             </div>
