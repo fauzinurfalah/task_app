@@ -1,44 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Sidebar from "../../components/Sidebar";
 import {
     Plus, Search, Filter, Clock3, Users, ChevronRight,
     BookOpen, Code2, Calculator, Layers, MoreHorizontal,
 } from "lucide-react";
-
-// ─── Sample Data ──────────────────────────────────────────────────────────────
-const TASKS = [
-    {
-        id: 1, title: "Implementasi Algoritma Sorting", course: "Algoritma & Pemrograman",
-        courseVariant: "indigo", deadline: "2026-05-30", time: "23:59",
-        submitted: 38, total: 42, status: "active",
-        desc: "Implementasikan 3 algoritma sorting (Bubble, Merge, Quick) menggunakan bahasa C++.",
-    },
-    {
-        id: 2, title: "Laporan Praktikum Jaringan", course: "Jaringan Komputer",
-        courseVariant: "orange", deadline: "2026-06-02", time: "12:00",
-        submitted: 20, total: 35, status: "active",
-        desc: "Buat laporan praktikum konfigurasi routing statis dan dinamis (OSPF, RIP).",
-    },
-    {
-        id: 3, title: "Proyek Akhir – Machine Learning", course: "Kecerdasan Buatan",
-        courseVariant: "purple", deadline: "2026-06-10", time: "23:59",
-        submitted: 5, total: 30, status: "active",
-        desc: "Bangun model klasifikasi menggunakan dataset pilihan, minimal akurasi 80%.",
-    },
-    {
-        id: 4, title: "Quiz Pemrograman Web", course: "Web Programming",
-        courseVariant: "green", deadline: "2026-05-20", time: "10:00",
-        submitted: 28, total: 28, status: "closed",
-        desc: "Quiz online HTML, CSS, dan JavaScript dasar.",
-    },
-    {
-        id: 5, title: "Tugas Analisis Kompleksitas", course: "Algoritma & Pemrograman",
-        courseVariant: "indigo", deadline: "2026-05-15", time: "23:59",
-        submitted: 40, total: 42, status: "graded",
-        desc: "Analisis kompleksitas waktu dan ruang dari 5 algoritma yang diberikan.",
-    },
-];
+import axiosClient from "../../axiosClient";
 
 const ICONS = {
     indigo: <BookOpen size={18} color="#4338ca" />,
@@ -102,12 +69,35 @@ function TaskCard({ task }) {
     );
 }
 
-// ─── Manage Task Page ─────────────────────────────────────────────────────────
 export default function DosenManageTask() {
     const [filter, setFilter] = useState("all");
     const [search, setSearch] = useState("");
+    const [tasks, setTasks] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    const filtered = TASKS.filter(t => {
+    useEffect(() => {
+        axiosClient.get('/dosen/tasks')
+            .then(({ data }) => {
+                // Map the data to the format TaskCard expects
+                const mappedTasks = data.map(t => ({
+                    id: t.id_task,
+                    title: t.nama_tugas,
+                    course: t.nama_matkul || "Umum",
+                    courseVariant: "indigo", // could be dynamic
+                    deadline: t.deadline,
+                    time: t.jam,
+                    submitted: t.submitted_count || 0,
+                    total: 42, // Would ideally come from course total_students
+                    status: t.status || "active",
+                    desc: t.deskripsi
+                }));
+                setTasks(mappedTasks);
+            })
+            .catch(err => console.error(err))
+            .finally(() => setLoading(false));
+    }, []);
+
+    const filtered = tasks.filter(t => {
         const matchStatus = filter === "all" || t.status === filter;
         const matchSearch = t.title.toLowerCase().includes(search.toLowerCase()) ||
                             t.course.toLowerCase().includes(search.toLowerCase());
@@ -157,11 +147,12 @@ export default function DosenManageTask() {
                     </div>
                 </div>
 
-                {/* TASK LIST */}
                 <div className="task-full-grid">
-                    {filtered.length > 0
+                    {loading ? (
+                        <p style={{ color: "#9ca3af", textAlign: "center", padding: "40px 0", gridColumn: "1 / -1" }}>Memuat tugas...</p>
+                    ) : filtered.length > 0
                         ? filtered.map(t => <TaskCard key={t.id} task={t} />)
-                        : <p style={{ color: "#9ca3af", textAlign: "center", padding: "40px 0" }}>Tidak ada tugas ditemukan.</p>
+                        : <p style={{ color: "#9ca3af", textAlign: "center", padding: "40px 0", gridColumn: "1 / -1" }}>Tidak ada tugas ditemukan.</p>
                     }
                 </div>
 

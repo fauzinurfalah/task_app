@@ -1,22 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axiosClient from "../../axiosClient";
 import Sidebar from "../../components/Sidebar";
 import { Search, TrendingUp, Award, BookOpen, MoreHorizontal, Mail, Phone } from "lucide-react";
-
-// ─── Sample Students ──────────────────────────────────────────────────────────
-const STUDENTS = [
-    { id: 1,  name: "Andi Saputra",    nim: "2021001", email: "andi@mail.com",  phone: "081234567890", courses: ["Algoritma", "Jaringan"],   avg: 88, submitted: 12, pending: 1, status: "aktif"   },
-    { id: 2,  name: "Sari Dewi",       nim: "2021015", email: "sari@mail.com",  phone: "081234567891", courses: ["Algoritma"],                avg: 73, submitted: 8,  pending: 3, status: "aktif"   },
-    { id: 3,  name: "Rizky Maulana",   nim: "2021032", email: "rizky@mail.com", phone: "081234567892", courses: ["Algoritma", "AI"],          avg: 91, submitted: 15, pending: 0, status: "aktif"   },
-    { id: 4,  name: "Dewi Lestari",    nim: "2021007", email: "dewi@mail.com",  phone: "081234567893", courses: ["Jaringan"],                 avg: 65, submitted: 6,  pending: 4, status: "aktif"   },
-    { id: 5,  name: "Budi Santoso",    nim: "2021044", email: "budi@mail.com",  phone: "081234567894", courses: ["Algoritma", "Jaringan", "AI"], avg: 92, submitted: 18, pending: 0, status: "aktif" },
-    { id: 6,  name: "Rina Suryani",    nim: "2021020", email: "rina@mail.com",  phone: "081234567895", courses: ["Algoritma"],                avg: 75, submitted: 10, pending: 2, status: "aktif"   },
-    { id: 7,  name: "Hendra Wijaya",   nim: "2021055", email: "hendra@mail.com",phone: "081234567896", courses: ["Jaringan"],                 avg: 58, submitted: 5,  pending: 5, status: "cuti"    },
-    { id: 8,  name: "Laila Fitriani",  nim: "2021011", email: "laila@mail.com", phone: "081234567897", courses: ["Algoritma", "AI"],          avg: 80, submitted: 11, pending: 1, status: "aktif"   },
-    { id: 9,  name: "Yoga Pratama",    nim: "2021060", email: "yoga@mail.com",  phone: "081234567898", courses: ["AI"],                       avg: 84, submitted: 9,  pending: 2, status: "aktif"   },
-    { id: 10, name: "Mega Wulandari",  nim: "2021033", email: "mega@mail.com",  phone: "081234567899", courses: ["Algoritma", "Jaringan"],   avg: 79, submitted: 13, pending: 1, status: "aktif"   },
-];
-
-const AVG_ALL = (STUDENTS.reduce((a, s) => a + s.avg, 0) / STUDENTS.length).toFixed(1);
 
 // ─── Student Card ─────────────────────────────────────────────────────────────
 function StudentCard({ student }) {
@@ -58,11 +43,33 @@ function StudentCard({ student }) {
 export default function DosenStudents() {
     const [search, setSearch]       = useState("");
     const [courseFilter, setCourse] = useState("all");
-    const [view, setView]           = useState("grid"); // grid | table
+    const [students, setStudents]   = useState([]);
+    const [loading, setLoading]     = useState(true);
 
-    const courses = [...new Set(STUDENTS.flatMap(s => s.courses))];
+    useEffect(() => {
+        axiosClient.get('/dosen/students')
+            .then(({ data }) => {
+                const mapped = data.map(s => ({
+                    id: s.id,
+                    name: s.name,
+                    nim: s.nim || "-",
+                    email: s.email,
+                    courses: s.courses?.map(c => c.nama_matkul) || [],
+                    avg: s.submissions_avg_grade ? Math.round(s.submissions_avg_grade) : 0,
+                    submitted: s.submitted_count || 0,
+                    pending: s.pending_count || 0,
+                    status: "aktif"
+                }));
+                setStudents(mapped);
+            })
+            .catch(console.error)
+            .finally(() => setLoading(false));
+    }, []);
 
-    const filtered = STUDENTS.filter(s => {
+    const courses = [...new Set(students.flatMap(s => s.courses))];
+    const AVG_ALL = students.length > 0 ? (students.reduce((a, s) => a + s.avg, 0) / students.length).toFixed(1) : 0;
+
+    const filtered = students.filter(s => {
         const matchSearch = s.name.toLowerCase().includes(search.toLowerCase()) || s.nim.includes(search);
         const matchCourse = courseFilter === "all" || s.courses.includes(courseFilter);
         return matchSearch && matchCourse;
@@ -77,7 +84,7 @@ export default function DosenStudents() {
                 <div className="topbar">
                     <div>
                         <h1 className="topbar__title">Data Mahasiswa</h1>
-                        <p className="topbar__subtitle">{STUDENTS.length} mahasiswa terdaftar di mata kuliah Anda.</p>
+                        <p className="topbar__subtitle">{students.length} mahasiswa terdaftar di mata kuliah Anda.</p>
                     </div>
                 </div>
 
@@ -85,7 +92,7 @@ export default function DosenStudents() {
                 <div className="stats-row" style={{ marginBottom: 20 }}>
                     <div className="stat-card">
                         <div className="stat-card__icon icon-bg--indigo"><BookOpen size={20} color="#4338ca" /></div>
-                        <div className="stat-card__body"><p className="stat-card__label">Total Mahasiswa</p><p className="stat-card__value">{STUDENTS.length}</p></div>
+                        <div className="stat-card__body"><p className="stat-card__label">Total Mahasiswa</p><p className="stat-card__value">{students.length}</p></div>
                     </div>
                     <div className="stat-card">
                         <div className="stat-card__icon icon-bg--green"><TrendingUp size={20} color="#16a34a" /></div>
@@ -93,11 +100,11 @@ export default function DosenStudents() {
                     </div>
                     <div className="stat-card">
                         <div className="stat-card__icon icon-bg--purple"><Award size={20} color="#7c3aed" /></div>
-                        <div className="stat-card__body"><p className="stat-card__label">Nilai Tertinggi</p><p className="stat-card__value">{Math.max(...STUDENTS.map(s => s.avg))}</p></div>
+                        <div className="stat-card__body"><p className="stat-card__label">Nilai Tertinggi</p><p className="stat-card__value">{students.length > 0 ? Math.max(...students.map(s => s.avg)) : 0}</p></div>
                     </div>
                     <div className="stat-card">
                         <div className="stat-card__icon icon-bg--orange"><MoreHorizontal size={20} color="#ea580c" /></div>
-                        <div className="stat-card__body"><p className="stat-card__label">Aktif</p><p className="stat-card__value">{STUDENTS.filter(s => s.status === "aktif").length}</p></div>
+                        <div className="stat-card__body"><p className="stat-card__label">Aktif</p><p className="stat-card__value">{students.filter(s => s.status === "aktif").length}</p></div>
                     </div>
                 </div>
 
@@ -115,13 +122,18 @@ export default function DosenStudents() {
                     </div>
                 </div>
 
-                {/* GRID */}
-                <div className="student-grid">
-                    {filtered.map(s => <StudentCard key={s.id} student={s} />)}
+                {/* LIST */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
+                    {loading ? (
+                        <div style={{ padding: 40, textAlign: "center", color: "#9ca3af", gridColumn: "1 / -1" }}>Memuat daftar mahasiswa...</div>
+                    ) : filtered.length === 0 ? (
+                        <div style={{ padding: 40, textAlign: "center", color: "#9ca3af", gridColumn: "1 / -1" }}>Tidak ada mahasiswa yang sesuai.</div>
+                    ) : (
+                        filtered.map(student => (
+                            <StudentCard key={student.id} student={student} />
+                        ))
+                    )}
                 </div>
-                {filtered.length === 0 && (
-                    <p style={{ textAlign: "center", color: "#9ca3af", padding: "40px 0" }}>Tidak ada mahasiswa ditemukan.</p>
-                )}
 
             </main>
         </div>

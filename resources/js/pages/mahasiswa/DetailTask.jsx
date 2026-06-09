@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import axiosClient from "../../axiosClient";
 import Sidebar from "../../components/Sidebar";
 import {
     ArrowLeft, AlertTriangle, BookOpen, Users, Clock,
@@ -149,15 +150,79 @@ function EditModal({ task, onClose, onSave }) {
 export default function DetailTask() {
     const navigate = useNavigate();
     const location = useLocation();
-    const [task, setTask] = useState(location.state?.task ?? DEFAULT_TASK);
+    const taskId = location.state?.taskId;
+
+    const [task, setTask] = useState(null);
+    const [submission, setSubmission] = useState(null);
+    const [loading, setLoading] = useState(true);
+
     const [subtasks, setSubs] = useState(INIT_SUBTASKS);
     const [comments, setComs] = useState(INIT_COMMENTS);
     const [newSub, setNewSub] = useState("");
     const [newCom, setNewCom] = useState("");
     const [tab, setTab] = useState("subtasks");
-    const [editing, setEdit] = useState(false);
-    const [status, setStatus] = useState(task.status);
+    const [status, setStatus] = useState("pending");
     const [submitted, setSub2] = useState(false);
+    
+    const fileInputRef = useRef(null);
+
+    useEffect(() => {
+        if (!taskId) {
+            navigate("/mahasiswa/tasks");
+            return;
+        }
+        fetchData();
+    }, [taskId]);
+
+    const fetchData = async () => {
+        try {
+            const { data } = await axiosClient.get(`/mahasiswa/tasks/${taskId}`);
+            setTask({
+                id: data.task.id_task,
+                title: data.task.nama_tugas,
+                course: data.task.mata_kuliah?.nama_matkul || "-",
+                courseCode: data.task.mata_kuliah?.kode_mk || "-",
+                description: data.task.deskripsi || "Tidak ada deskripsi",
+                attachment: data.task.attachment || null,
+                due: data.task.deadline,
+                dueTime: data.task.jam || "23:59",
+                type: "assignment",
+                priority: data.task.prioritas || "medium",
+                progress: data.submission ? 100 : 0,
+            });
+            setSubmission(data.submission);
+            setStatus(data.submission ? (data.submission.status === "late" ? "late" : "completed") : "pending");
+        } catch (error) {
+            console.error("Error fetching task details:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleFileChange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            setSub2(true); // Loading state
+            await axiosClient.post(`/mahasiswa/tasks/${taskId}/submit`, formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
+            await fetchData(); // Refresh data
+        } catch (error) {
+            console.error("Upload failed", error);
+            alert("Gagal mengunggah file");
+        } finally {
+            setSub2(false);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+        }
+    };
+
+    if (loading) return <div className="app-wrapper"><main className="main-content"><p>Loading...</p></main></div>;
+    if (!task) return <div className="app-wrapper"><main className="main-content"><p>Task not found.</p></main></div>;
 
     const tc = TYPE_CFG[task.type] || TYPE_CFG.assignment;
     const pc = PRI_CFG[task.priority] || PRI_CFG.medium;
@@ -174,12 +239,11 @@ export default function DetailTask() {
     const TABS = [
         { key: "subtasks", label: "Sub-tugas", count: subtasks.length, icon: CheckCircle2 },
         { key: "comments", label: "Catatan", count: comments.length, icon: MessageSquare },
-        { key: "attachments", label: "Lampiran", count: ATTACHMENTS.length, icon: Paperclip },
+        { key: "attachments", label: "Lampiran Dosen", count: task.attachment ? 1 : 0, icon: Paperclip },
     ];
 
     return (
         <div className="app-wrapper">
-            {editing && <EditModal task={task} onClose={() => setEdit(false)} onSave={t => { setTask(t); setStatus(t.status); }} />}
             <Sidebar />
             <main className="main-content detail-page">
                 <style>{`
@@ -372,28 +436,32 @@ export default function DetailTask() {
                         {tab === "attachments" && (
                             <div style={{ background: "white", borderRadius: 18, padding: "20px 24px", boxShadow: "0 1px 4px rgba(0,0,0,.06)", border: "1px solid #f3f4f6" }}>
                                 <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>
-                                    {ATTACHMENTS.map(a => (
-                                        <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "#f9fafb", borderRadius: 13, transition: "background .15s" }}
-                                            onMouseEnter={e => e.currentTarget.style.background = "#f3f4f6"}
-                                            onMouseLeave={e => e.currentTarget.style.background = "#f9fafb"}>
-                                            <span style={{ fontSize: 22, flexShrink: 0 }}>{a.icon}</span>
-                                            <div style={{ flex: 1 }}>
-                                                <p style={{ fontSize: 13, fontWeight: 700, color: "#111827", margin: 0 }}>{a.name}</p>
-                                                <p style={{ fontSize: 11, color: "#9ca3af", margin: "2px 0 0" }}>{a.size}</p>
-                                            </div>
-                                            <button style={{ background: "none", border: "none", cursor: "pointer", color: "#4338ca", display: "flex", padding: 8, borderRadius: 8, transition: "background .15s" }}
-                                                onMouseEnter={e => e.currentTarget.style.background = "#eef2ff"}
-                                                onMouseLeave={e => e.currentTarget.style.background = "none"}>
-                                                <Link2 size={14} />
-                                            </button>
-                                        </div>
-                                    ))}
+                                    {task.attachment ? (
+                                        <>
+                                            {task.attachment.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
+                                                <div style={{ marginBottom: 12, borderRadius: 12, overflow: "hidden", border: "1px solid #f3f4f6" }}>
+                                                    <img src={`http://127.0.0.1:8000/storage/${task.attachment}`} alt="Lampiran Dosen" style={{ width: "100%", height: "auto", display: "block" }} />
+                                                </div>
+                                            ) : null}
+                                            <a href={`http://127.0.0.1:8000/storage/${task.attachment}?download=1`} download target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "#f9fafb", borderRadius: 13, textDecoration: "none", color: "inherit", transition: "background .15s" }}
+                                                onMouseEnter={e => e.currentTarget.style.background = "#f3f4f6"}
+                                                onMouseLeave={e => e.currentTarget.style.background = "#f9fafb"}>
+                                                <span style={{ fontSize: 22, flexShrink: 0 }}>📄</span>
+                                                <div style={{ flex: 1 }}>
+                                                    <p style={{ fontSize: 13, fontWeight: 700, color: "#111827", margin: 0 }}>{task.attachment.split('/').pop()}</p>
+                                                    <p style={{ fontSize: 11, color: "#9ca3af", margin: "2px 0 0" }}>Lampiran Dosen</p>
+                                                </div>
+                                                <div style={{ background: "none", border: "none", cursor: "pointer", color: "#4338ca", display: "flex", padding: 8, borderRadius: 8, transition: "background .15s" }}
+                                                    onMouseEnter={e => e.currentTarget.style.background = "#eef2ff"}
+                                                    onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                                                    <Download size={14} />
+                                                </div>
+                                            </a>
+                                        </>
+                                    ) : (
+                                        <p style={{ fontSize: 13, color: "#9ca3af", textAlign: "center", padding: "20px 0" }}>Tidak ada lampiran dari dosen.</p>
+                                    )}
                                 </div>
-                                <button style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", padding: 12, border: "1.5px dashed #c7d2fe", borderRadius: 13, background: "none", color: "#4338ca", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "all .15s" }}
-                                    onMouseEnter={e => { e.currentTarget.style.background = "#eef2ff"; e.currentTarget.style.borderColor = "#4338ca"; }}
-                                    onMouseLeave={e => { e.currentTarget.style.background = "none"; e.currentTarget.style.borderColor = "#c7d2fe"; }}>
-                                    <Upload size={15} />Unggah File Baru
-                                </button>
                             </div>
                         )}
                     </div>
@@ -444,13 +512,23 @@ export default function DetailTask() {
 
                         {/* Actions */}
                         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                            <button className="dt-btn-pri" onClick={() => { setSub2(true); setTimeout(() => setSub2(false), 2000); }}>
-                                {submitted ? <><Check size={15} />Berhasil Disubmit!</> : <><Upload size={15} />Submit Tugas</>}
+                            <input 
+                                type="file" 
+                                ref={fileInputRef} 
+                                style={{ display: "none" }} 
+                                onChange={handleFileChange}
+                            />
+                            <button 
+                                className="dt-btn-pri" 
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={submitted || status === "completed" || status === "late"}
+                                style={{ opacity: (status === "completed" || status === "late") ? 0.7 : 1 }}
+                            >
+                                {submitted ? <><span className="spinner"></span>Mengunggah...</> : 
+                                 (status === "completed" || status === "late") ? <><Check size={15} />Tugas Terkirim</> : 
+                                 <><Upload size={15} />Submit Tugas</>}
                             </button>
-                            <button className="dt-btn-sec" onClick={() => setEdit(true)}>
-                                <Edit3 size={14} />Edit Tugas
-                            </button>
-                            <button className="dt-btn-sec" onClick={() => navigate("/tasks")}>
+                            <button className="dt-btn-sec" onClick={() => navigate("/mahasiswa/tasks")}>
                                 <ArrowLeft size={14} />Kembali ke Tugas
                             </button>
                         </div>

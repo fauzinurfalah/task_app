@@ -1,26 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import axiosClient from "../../axiosClient";
 import Sidebar from "../../components/Sidebar";
 import { ChevronLeft, Download, Search, Filter, CheckCircle2, Clock, FileText } from "lucide-react";
-
-// ─── Sample Submissions ───────────────────────────────────────────────────────
-const ALL_SUBMISSIONS = [
-    { id: 1, taskId: 1, name: "Andi Saputra",    nim: "2021001", course: "Algoritma", file: "andi_sorting.zip",   status: "submitted", grade: null, submittedAt: "2026-05-29 22:30", late: false },
-    { id: 2, taskId: 1, name: "Sari Dewi",        nim: "2021015", course: "Algoritma", file: "sari_sorting.zip",   status: "late",      grade: null, submittedAt: "2026-05-30 01:10", late: true  },
-    { id: 3, taskId: 1, name: "Rizky Maulana",    nim: "2021032", course: "Algoritma", file: "rizky_sorting.zip",  status: "submitted", grade: 88,   submittedAt: "2026-05-29 20:15", late: false },
-    { id: 4, taskId: 1, name: "Dewi Lestari",     nim: "2021007", course: "Algoritma", file: null,                 status: "pending",   grade: null, submittedAt: "—",                late: false },
-    { id: 5, taskId: 1, name: "Budi Santoso",     nim: "2021044", course: "Algoritma", file: "budi_sorting.zip",   status: "submitted", grade: 92,   submittedAt: "2026-05-29 18:00", late: false },
-    { id: 6, taskId: 1, name: "Rina Suryani",     nim: "2021020", course: "Algoritma", file: "rina_sorting.zip",   status: "submitted", grade: 75,   submittedAt: "2026-05-29 21:45", late: false },
-    { id: 7, taskId: 1, name: "Hendra Wijaya",    nim: "2021055", course: "Algoritma", file: null,                 status: "pending",   grade: null, submittedAt: "—",                late: false },
-    { id: 8, taskId: 1, name: "Laila Fitriani",   nim: "2021011", course: "Algoritma", file: "laila_sorting.zip",  status: "late",      grade: null, submittedAt: "2026-05-30 09:00", late: true  },
-    { id: 9, taskId: 2, name: "Andi Saputra",     nim: "2021001", course: "Jaringan",  file: "andi_jaringan.pdf",  status: "submitted", grade: null, submittedAt: "2026-06-01 10:30", late: false },
-    { id:10, taskId: 2, name: "Sari Dewi",         nim: "2021015", course: "Jaringan",  file: null,                 status: "pending",   grade: null, submittedAt: "—",                late: false },
-];
-
-const TASK_NAMES = {
-    1: "Implementasi Algoritma Sorting",
-    2: "Laporan Praktikum Jaringan",
-};
 
 // ─── Submissions Page ─────────────────────────────────────────────────────────
 export default function DosenSubmissions() {
@@ -30,18 +12,49 @@ export default function DosenSubmissions() {
     const [statusFilter, setStatusFilter] = useState("all");
     const [search, setSearch] = useState("");
 
-    const data = ALL_SUBMISSIONS.filter(s => {
-        const matchTask   = taskFilter === "all" || s.taskId === taskFilter;
+    const [submissions, setSubmissions] = useState([]);
+    const [tasks, setTasks] = useState({});
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        axiosClient.get('/dosen/submissions')
+            .then(({ data }) => {
+                const mapped = data.map(s => ({
+                    id: s.id,
+                    taskId: s.task_id,
+                    name: s.user?.name || "Unknown",
+                    nim: s.user?.nim || "-",
+                    file: s.file ? s.file.split('/').pop() : null,
+                    filePath: s.file,
+                    status: s.status,
+                    grade: s.points,
+                    submittedAt: new Date(s.created_at).toLocaleString('id-ID'),
+                }));
+                setSubmissions(mapped);
+                
+                // Extract unique tasks for filter
+                const uniqueTasks = {};
+                data.forEach(s => {
+                    if (s.task) uniqueTasks[s.task.id_task] = s.task.nama_tugas;
+                });
+                setTasks(uniqueTasks);
+            })
+            .catch(console.error)
+            .finally(() => setLoading(false));
+    }, []);
+
+    const data = submissions.filter(s => {
+        const matchTask   = taskFilter === "all" || s.taskId == taskFilter;
         const matchStatus = statusFilter === "all" || s.status === statusFilter;
-        const matchSearch = s.name.toLowerCase().includes(search.toLowerCase()) || s.nim.includes(search);
+        const matchSearch = (s.name && s.name.toLowerCase().includes(search.toLowerCase())) || (s.nim && s.nim.includes(search));
         return matchTask && matchStatus && matchSearch;
     });
 
     const counts = {
-        all:       ALL_SUBMISSIONS.length,
-        submitted: ALL_SUBMISSIONS.filter(s => s.status === "submitted").length,
-        late:      ALL_SUBMISSIONS.filter(s => s.status === "late").length,
-        pending:   ALL_SUBMISSIONS.filter(s => s.status === "pending").length,
+        all:       submissions.length,
+        submitted: submissions.filter(s => s.status === "submitted" || s.status === "graded").length,
+        late:      submissions.filter(s => s.status === "late").length,
+        pending:   submissions.filter(s => s.status === "pending").length,
     };
 
     return (
@@ -91,7 +104,7 @@ export default function DosenSubmissions() {
                     <div className="filter-tabs">
                         <Filter size={14} color="#6b7280" />
                         <button className={`filter-tab ${taskFilter === "all" ? "filter-tab--active" : ""}`} onClick={() => setTaskFilter("all")}>Semua Tugas</button>
-                        {Object.entries(TASK_NAMES).map(([id, name]) => (
+                        {Object.entries(tasks).map(([id, name]) => (
                             <button key={id} className={`filter-tab ${taskFilter === parseInt(id) ? "filter-tab--active" : ""}`} onClick={() => setTaskFilter(parseInt(id))}>
                                 {name.split(" ").slice(0, 2).join(" ")}…
                             </button>
@@ -114,7 +127,11 @@ export default function DosenSubmissions() {
                             </tr>
                         </thead>
                         <tbody>
-                            {data.map(s => (
+                            {loading ? (
+                                <tr><td colSpan="7" style={{ textAlign: "center", padding: "40px" }}>Memuat data pengumpulan...</td></tr>
+                            ) : data.length === 0 ? (
+                                <tr><td colSpan="7" style={{ textAlign: "center", padding: "40px", color: "#9ca3af" }}>Tidak ada data pengumpulan.</td></tr>
+                            ) : data.map(s => (
                                 <tr key={s.id}>
                                     <td>
                                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -125,7 +142,7 @@ export default function DosenSubmissions() {
                                             </div>
                                         </div>
                                     </td>
-                                    <td><span style={{ fontSize: 12, color: "#374151" }}>{TASK_NAMES[s.taskId]}</span></td>
+                                    <td><span style={{ fontSize: 12, color: "#374151" }}>{tasks[s.taskId] || `Task #${s.taskId}`}</span></td>
                                     <td>
                                         <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "#6b7280" }}>
                                             <Clock size={12} />{s.submittedAt}
@@ -133,7 +150,7 @@ export default function DosenSubmissions() {
                                     </td>
                                     <td>
                                         {s.file
-                                            ? <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "#4338ca", cursor: "pointer" }}><FileText size={12} />{s.file}</div>
+                                            ? <a href={`http://127.0.0.1:8000/storage/${s.filePath}?download=1`} download={s.file} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "#4338ca", cursor: "pointer", textDecoration: "none" }}><FileText size={12} />{s.file}</a>
                                             : <span style={{ fontSize: 12, color: "#d1d5db" }}>—</span>
                                         }
                                     </td>

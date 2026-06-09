@@ -62,6 +62,11 @@ export default function Sidebar({ role = "mahasiswa" }) {
     const links = NAV_LINKS[role] || NAV_LINKS.mahasiswa;
     const meta = ROLE_META[role] || ROLE_META.mahasiswa;
 
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const userName = user?.name || meta.name;
+    const userEmail = user?.email || meta.sub;
+    const userInitial = userName.charAt(0).toUpperCase();
     const [popupOpen, setPopupOpen] = useState(false);
     const popupRef = useRef(null);
     const triggerRef = useRef(null);
@@ -117,6 +122,12 @@ export default function Sidebar({ role = "mahasiswa" }) {
                 })}
             </nav>
 
+            {/* USER PROFILE */}
+            <div className="sidebar__profile">
+                <div className="sidebar__avatar">{userInitial}</div>
+                <div>
+                    <p className="sidebar__profile-name">{userName}</p>
+                    <p className="sidebar__profile-role">{userEmail}</p>
             {/* PROFILE POPUP */}
             {popupOpen && (
                 <div className="sidebar__profile-popup" ref={popupRef}>

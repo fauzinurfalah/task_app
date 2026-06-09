@@ -1,5 +1,7 @@
+import { useState, useEffect } from "react";
 import Sidebar from "../../components/Sidebar";
 import { Search, Bell, Plus, Clock3, Users, BookOpen, CheckCircle2, BarChart2, TrendingUp } from "lucide-react";
+import axiosClient from "../../axiosClient";
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 function StatCard({ icon, iconVariant, label, value, trend }) {
@@ -61,6 +63,31 @@ function TaskManageItem({ title, course, deadline, submitted, total, badgeVarian
 
 // ─── Dosen Dashboard ─────────────────────────────────────────────────────────
 export default function DosenDashboard() {
+    const [stats, setStats] = useState({
+        total_mahasiswa: 0,
+        tugas_aktif: 0,
+        sudah_dinilai: 0,
+        rata_rata_nilai: 0,
+    });
+    const [tasks, setTasks] = useState([]);
+    const [user, setUser] = useState({});
+
+    useEffect(() => {
+        const u = JSON.parse(localStorage.getItem('user') || '{}');
+        setUser(u);
+
+        axiosClient.get('/dosen/dashboard-stats')
+            .then(({ data }) => setStats(data))
+            .catch(err => console.error(err));
+
+        axiosClient.get('/dosen/tasks')
+            .then(({ data }) => {
+                // Filter active tasks
+                setTasks(data.filter(t => t.status === 'active').slice(0, 3));
+            })
+            .catch(err => console.error(err));
+    }, []);
+
     return (
         <div className="app-wrapper">
 
@@ -73,7 +100,7 @@ export default function DosenDashboard() {
                 {/* TOPBAR */}
                 <div className="topbar">
                     <div>
-                        <h1 className="topbar__title">Selamat Datang, Dr. Budi</h1>
+                        <h1 className="topbar__title">Selamat Datang, {user.name}</h1>
                         <p className="topbar__subtitle">
                             Ada 12 pengumpulan baru yang perlu diperiksa hari ini.
                         </p>
@@ -87,35 +114,30 @@ export default function DosenDashboard() {
                     </div>
                 </div>
 
-                {/* STAT CARDS */}
                 <div className="stats-row">
                     <StatCard
                         icon={<Users size={20} color="#4338ca" />}
                         iconVariant="indigo"
                         label="Total Mahasiswa"
-                        value="128"
-                        trend="+3 baru"
+                        value={stats.total_mahasiswa}
                     />
                     <StatCard
                         icon={<BookOpen size={20} color="#ea580c" />}
                         iconVariant="orange"
                         label="Tugas Aktif"
-                        value="6"
-                        trend="2 deadline hari ini"
+                        value={stats.tugas_aktif}
                     />
                     <StatCard
                         icon={<CheckCircle2 size={20} color="#16a34a" />}
                         iconVariant="green"
                         label="Sudah Dinilai"
-                        value="84"
-                        trend="dari 128"
+                        value={stats.sudah_dinilai}
                     />
                     <StatCard
                         icon={<TrendingUp size={20} color="#7c3aed" />}
                         iconVariant="purple"
                         label="Rata-rata Nilai"
-                        value="82.4"
-                        trend="↑ +1.2 minggu ini"
+                        value={stats.rata_rata_nilai}
                     />
                 </div>
 
@@ -131,30 +153,18 @@ export default function DosenDashboard() {
                             <button className="btn-link">Kelola Semua</button>
                         </div>
                         <div className="task-list">
-                            <TaskManageItem
-                                title="Implementasi Algoritma Sorting"
-                                course="Algoritma & Pemrograman"
-                                deadline="Hari ini, 23:59"
-                                submitted={38}
-                                total={42}
-                                badgeVariant="indigo"
-                            />
-                            <TaskManageItem
-                                title="Laporan Praktikum Jaringan"
-                                course="Jaringan Komputer"
-                                deadline="Besok, 12:00"
-                                submitted={20}
-                                total={35}
-                                badgeVariant="orange"
-                            />
-                            <TaskManageItem
-                                title="Proyek Akhir - Machine Learning"
-                                course="Kecerdasan Buatan"
-                                deadline="3 Jun, 23:59"
-                                submitted={5}
-                                total={30}
-                                badgeVariant="purple"
-                            />
+                            {tasks.map(t => (
+                                <TaskManageItem
+                                    key={t.id_task}
+                                    title={t.nama_tugas}
+                                    course={t.mata_kuliah?.nama_matkul}
+                                    deadline={`${t.deadline} ${t.jam}`}
+                                    submitted={t.submitted_count || 0}
+                                    total={stats.total_mahasiswa}
+                                    badgeVariant="indigo"
+                                />
+                            ))}
+                            {tasks.length === 0 && <p style={{color:'#9ca3af', padding:'20px 0'}}>Belum ada tugas aktif.</p>}
                         </div>
 
                         {/* Statistik Kelas */}
