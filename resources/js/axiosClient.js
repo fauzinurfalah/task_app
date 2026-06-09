@@ -30,7 +30,7 @@ axiosClient.interceptors.response.use(
                 localStorage.removeItem('token');
                 localStorage.removeItem('user');
                 // Redirect to login if token is invalid
-                window.location.href = '/login';
+                window.location.href = '/';
             }
         } catch (e) {
             console.error(e);

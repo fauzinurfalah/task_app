@@ -1,5 +1,5 @@
-import { useState } from "react";
-import axios from "axios";
+import { useState, useEffect } from "react";
+import axiosClient from "../axiosClient";
 import { useNavigate } from "react-router-dom";
 
 function Dots() {
@@ -71,6 +71,14 @@ export default function Auth() {
     const set = key => e => setForm(f=>({...f,[key]:e.target.value}));
     const isLogin = mode==="login";
 
+    useEffect(() => {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+            const user = JSON.parse(userStr);
+            navigate(user.role === 'dosen' ? '/dosen' : '/mahasiswa', { replace: true });
+        }
+    }, [navigate]);
+
     function validate() {
         const e={};
         if(!isLogin){
@@ -90,11 +98,10 @@ export default function Auth() {
         setErrors({});
         setApiError("");
         setLoading(true);
-        setError('');
         
         try {
             if(isLogin) {
-                const response = await axios.post("/api/login", {
+                const response = await axiosClient.post("/login", {
                     email: form.email,
                     password: form.password,
                 });
@@ -105,34 +112,21 @@ export default function Auth() {
                 setTimeout(() => {
                     navigate(role === "dosen" ? "/dosen" : "/mahasiswa");
                 }, 1000);
-                return;
             } else {
-                const response = await axios.post("/api/register", {
+                await axiosClient.post("/register", {
                     name: form.name,
                     nim: form.nim,
                     email: form.email,
                     password: form.password,
                     role: form.role,
                 });
-                localStorage.setItem("user", JSON.stringify(response.data.user));
-                localStorage.setItem("token", response.data.token);
-                const role = response.data.user?.role || "mahasiswa";
                 setSuccess(true);
                 setTimeout(() => {
-                    navigate(role === "dosen" ? "/dosen" : "/mahasiswa");
-                }, 1000);
-                return;
+                    setSuccess(false);
+                    setMode("login");
+                    setForm({ name:"", nim:"", email:"", password:"", confirm:"", role:"mahasiswa" });
+                }, 1500);
             }
-            const response = await axios.post('/api/login', {
-                email,
-                password
-            });
-            
-            // On success, maybe save the user data in localStorage or state
-            localStorage.setItem('user', JSON.stringify(response.data.user));
-            
-            // Redirect to dashboard
-            navigate('/dashboard');
         } catch (err) {
             const msg = err.response?.data?.message;
             const validationErrors = err.response?.data?.errors;
@@ -207,7 +201,7 @@ export default function Auth() {
                                 </svg>
                             </div>
                             <p style={{ fontSize:18,fontWeight:800,color:"#111827" }}>{isLogin?"Selamat Datang!":"Akun Berhasil Dibuat!"}</p>
-                            <p style={{ fontSize:13,color:"#9ca3af" }}>Mengalihkan ke dashboard…</p>
+                            <p style={{ fontSize:13,color:"#9ca3af" }}>{isLogin ? "Mengalihkan ke dashboard…" : "Silakan masuk untuk melanjutkan…"}</p>
                         </div>
                     )}
 

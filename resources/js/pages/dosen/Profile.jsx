@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Sidebar from "../../components/Sidebar";
 import {
     Edit3, Mail, Phone, MapPin, BookOpen, Award,
@@ -7,52 +7,38 @@ import {
     Hash, Code2, Calculator, Cpu, Globe, Plus, Trash2,
     Download, Share2, Bell, Lock, ChevronRight, Zap,
     Target, Flame, Medal, ExternalLink, Copy, Check,
-    Upload, Settings, LogOut, Eye, Users, Briefcase
+    Upload, Settings, LogOut, Eye, Users, Briefcase, Building
 } from "lucide-react";
 
 // ─── Static Data ──────────────────────────────────────────────────────────────
 const INIT_PROFILE = {
-    name: "Dr. Budi Santoso, M.T.",
-    nip: "197805102005011003",
-    email: "budi.santoso@university.ac.id",
-    phone: "+62 812-3456-7890",
-    address: "Jl. Universitas No. 5, Jakarta",
-    dept: "Teknik Informatika",
-    faculty: "Fakultas Ilmu Komputer",
-    position: "Lektor Kepala",
-    teachingHours: 120,
-    students: 107,
-    bio: "Dosen dengan spesialisasi di bidang Algoritma, Kecerdasan Buatan, dan Jaringan Komputer. Memiliki pengalaman mengajar lebih dari 15 tahun dan aktif dalam penelitian Machine Learning terapan.",
-    github: "github.com/budisantoso",
-    linkedin: "linkedin.com/in/budisantoso",
-    website: "budisantoso.dev",
+    name: "Memuat...",
+    nip: "-",
+    email: "-",
+    phone: "Belum diatur",
+    address: "Belum diatur",
+    dept: "Belum diatur",
+    faculty: "Belum diatur",
+    position: "Belum diatur",
+    teachingHours: 0,
+    students: 0,
+    bio: "Belum ada deskripsi profil.",
+    github: "",
+    linkedin: "",
+    website: "",
 };
 
-const INIT_COURSES = [
-    { id: 1, name: "Kecerdasan Buatan", sks: 3, students: 40, icon: Cpu, color: "#4338ca", bg: "#eef2ff" },
-    { id: 2, name: "Mobile Programming Lanjut", sks: 4, students: 35, icon: Code2, color: "#7c3aed", bg: "#f5f3ff" },
-    { id: 3, name: "Algoritma & Struktur Data", sks: 3, students: 32, icon: Hash, color: "#dc2626", bg: "#fef2f2" },
-];
-
-const INIT_ACHIEVEMENTS = [
-    { id: 1, icon: "🏆", title: "Hibah Penelitian Ristekdikti", year: "2025", color: "#f59e0b" },
-    { id: 2, icon: "🥇", title: "Dosen Berprestasi Tingkat Fakultas", year: "2024", color: "#eab308" },
-    { id: 3, icon: "📜", title: "Publikasi Jurnal Internasional (Q1)", year: "2024", color: "#3b82f6" },
-];
+const INIT_COURSES = [];
+const INIT_ACHIEVEMENTS = [];
 
 const STATS = [
-    { label: "Total Mahasiswa", value: 107, icon: Users, color: "#16a34a", bg: "#ecfdf5", trend: "+12 semester ini" },
-    { label: "Mata Kuliah", value: 3, icon: BookOpen, color: "#4338ca", bg: "#eef2ff", trend: "Semester Genap" },
-    { label: "Publikasi", value: 15, icon: Award, color: "#ea580c", bg: "#fff7ed", trend: "+2 tahun ini" },
-    { label: "Jam Mengajar", value: 120, icon: Clock, color: "#dc2626", bg: "#fef2f2", trend: "Sesuai Beban Kerja" },
+    { label: "Total Mahasiswa", value: 0, icon: Users, color: "#16a34a", bg: "#ecfdf5", trend: "-" },
+    { label: "Mata Kuliah", value: 0, icon: BookOpen, color: "#4338ca", bg: "#eef2ff", trend: "-" },
+    { label: "Publikasi", value: 0, icon: Award, color: "#ea580c", bg: "#fff7ed", trend: "-" },
+    { label: "Jam Mengajar", value: 0, icon: Clock, color: "#dc2626", bg: "#fef2f2", trend: "-" },
 ];
 
-const ACTIVITY_HISTORY = [
-    { label: "Menilai Quiz Algoritma", time: "Hari ini, 10:00", dot: "#4338ca", icon: "✅" },
-    { label: "Mengunggah Materi Komputasi Awan", time: "Kemarin, 22:30", dot: "#16a34a", icon: "📤" },
-    { label: "Rapat Koordinasi Jurusan", time: "28 Mei, 14:00", dot: "#ea580c", icon: "💬" },
-    { label: "Submit Laporan BKD", time: "25 Mei, 23:45", dot: "#0891b2", icon: "🚀" },
-];
+const ACTIVITY_HISTORY = [];
 
 const HEATMAP_LEVELS = [0, 2, 3, 1, 0, 2, 3, 2, 1, 3, 0, 2, 3, 1, 2, 0, 3, 2, 1, 3, 2, 0, 1, 3, 2, 3, 1, 0, 2, 3, 1];
 const HEATMAP_COLORS = ["#f1f5f9", "#c7d2fe", "#818cf8", "#4338ca"];
@@ -265,6 +251,18 @@ export default function DosenProfile() {
     const [avatarColor] = useState(["#ea580c", "#4338ca", "#059669", "#dc2626", "#7c3aed"][Math.floor(Math.random() * 5)]);
     const fileRef = useRef(null);
     const [avatarEmoji, setAvatarEmoji] = useState(null);
+
+    useEffect(() => {
+        const u = JSON.parse(localStorage.getItem('user') || '{}');
+        if (u.name) {
+            setProfile(p => ({
+                ...p,
+                name: u.name,
+                email: u.email,
+                nip: u.nim || p.nip,
+            }));
+        }
+    }, []);
 
     function handleSave(data) { setProfile(data); setEditing(false); }
     function copyEmail() {
@@ -505,7 +503,7 @@ export default function DosenProfile() {
                                         <span style={{ flex: 1, fontSize: 10, fontWeight: 700, color: "#9ca3af", letterSpacing: 1, textTransform: "uppercase" }}>Mata Kuliah</span>
                                         <span style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", letterSpacing: 1, width: 80, textAlign: "right", textTransform: "uppercase" }}>Mahasiswa</span>
                                     </div>
-                                    {INIT_COURSES.map(c => <CourseRow key={c.id} course={c} />)}
+                                    {INIT_COURSES.length > 0 ? INIT_COURSES.map(c => <CourseRow key={c.id} course={c} />) : <div style={{ padding: "30px 0", textAlign: "center", color: "#9ca3af" }}><p style={{ fontSize: 24, margin: "0 0 8px" }}>📚</p><p style={{ fontSize: 13, margin: 0 }}>Belum ada kelas.</p></div>}
                                 </div>
                             )}
 
@@ -551,7 +549,7 @@ export default function DosenProfile() {
                                             <Target size={15} color="#ea580c" />Riwayat Aktivitas
                                         </p>
                                         <div style={{ borderLeft: "2px solid #e5e7eb", marginLeft: 8, display: "flex", flexDirection: "column", gap: 16 }}>
-                                            {ACTIVITY_HISTORY.map((a, i) => (
+                                            {ACTIVITY_HISTORY.length > 0 ? ACTIVITY_HISTORY.map((a, i) => (
                                                 <div key={i} style={{ position: "relative", paddingLeft: 20 }}>
                                                     <div style={{ position: "absolute", left: -9, top: 4, width: 16, height: 16, borderRadius: "50%", background: a.dot, border: "2px solid white", boxShadow: `0 0 0 2px ${a.dot}40` }} />
                                                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -562,7 +560,9 @@ export default function DosenProfile() {
                                                         </div>
                                                     </div>
                                                 </div>
-                                            ))}
+                                            )) : (
+                                                <div style={{ paddingLeft: 20, color: "#9ca3af", fontSize: 12 }}>Belum ada riwayat aktivitas.</div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Sidebar from "../../components/Sidebar";
 import {
     Edit3, Mail, Phone, MapPin, BookOpen, Award,
@@ -12,56 +12,36 @@ import {
 
 // ─── Static Data ──────────────────────────────────────────────────────────────
 const INIT_PROFILE = {
-    name: "Fauzi Ramadhan",
-    nim: "12345678",
-    email: "fauzi.ramadhan@student.ac.id",
-    phone: "+62 812-3456-7890",
-    address: "Purwokerto, Jawa Tengah",
-    major: "Teknik Informatika",
-    faculty: "Fakultas Teknik",
-    semester: 6,
-    ipk: 3.82,
-    sks: 118,
-    angkatan: 2023,
-    bio: "Mahasiswa Teknik Informatika yang passionate di bidang Machine Learning dan Web Development. Suka mengeksplor teknologi baru dan berkontribusi di open-source.",
-    github: "github.com/fauziramadhan",
-    linkedin: "linkedin.com/in/fauziramadhan",
-    website: "fauziramadhan.dev",
+    name: "Memuat...",
+    nim: "-",
+    email: "-",
+    phone: "Belum diatur",
+    address: "Belum diatur",
+    major: "Belum diatur",
+    faculty: "Belum diatur",
+    semester: 1,
+    ipk: 0.0,
+    sks: 0,
+    angkatan: new Date().getFullYear(),
+    bio: "Belum ada deskripsi profil.",
+    github: "",
+    linkedin: "",
+    website: "",
 };
 
-const INIT_COURSES = [
-    { id: 1, name: "Kecerdasan Buatan", sks: 3, grade: "A", nilai: 4.0, icon: Cpu, color: "#4338ca", bg: "#eef2ff" },
-    { id: 2, name: "Mobile Programming Lanjut", sks: 4, grade: "A-", nilai: 3.7, icon: Code2, color: "#7c3aed", bg: "#f5f3ff" },
-    { id: 3, name: "Komputasi Awan", sks: 3, grade: "B+", nilai: 3.3, icon: Globe, color: "#0891b2", bg: "#e0f2fe" },
-    { id: 4, name: "Web Programming Lanjut", sks: 3, grade: "A", nilai: 4.0, icon: Code2, color: "#059669", bg: "#ecfdf5" },
-    { id: 5, name: "Jaringan Komputer", sks: 3, grade: "A-", nilai: 3.7, icon: Calculator, color: "#ea580c", bg: "#fff7ed" },
-    { id: 6, name: "Algoritma & Struktur Data", sks: 3, grade: "A", nilai: 4.0, icon: Hash, color: "#dc2626", bg: "#fef2f2" },
-];
-
-const INIT_ACHIEVEMENTS = [
-    { id: 1, icon: "🏆", title: "Juara 2 Hackathon Nasional", year: "2025", color: "#f59e0b" },
-    { id: 2, icon: "🥇", title: "IPK Terbaik Angkatan", year: "2024", color: "#eab308" },
-    { id: 3, icon: "📜", title: "Google Cloud Certification", year: "2024", color: "#3b82f6" },
-    { id: 4, icon: "⭐", title: "Best Paper – Seminar AI", year: "2023", color: "#8b5cf6" },
-];
+const INIT_COURSES = [];
+const INIT_ACHIEVEMENTS = [];
 
 const STATS = [
-    { label: "Tugas Selesai", value: 47, icon: CheckCircle2, color: "#16a34a", bg: "#ecfdf5", trend: "+5 bulan ini" },
-    { label: "Mata Kuliah", value: 28, icon: BookOpen, color: "#4338ca", bg: "#eef2ff", trend: "Semester 1-6" },
-    { label: "Jam Belajar", value: 320, icon: Clock, color: "#ea580c", bg: "#fff7ed", trend: "+18 minggu ini" },
-    { label: "Streak Hari", value: 12, icon: Flame, color: "#dc2626", bg: "#fef2f2", trend: "🔥 Terus!" },
+    { label: "Tugas Selesai", value: 0, icon: CheckCircle2, color: "#16a34a", bg: "#ecfdf5", trend: "-" },
+    { label: "Mata Kuliah", value: 0, icon: BookOpen, color: "#4338ca", bg: "#eef2ff", trend: "-" },
+    { label: "Jam Belajar", value: 0, icon: Clock, color: "#ea580c", bg: "#fff7ed", trend: "-" },
+    { label: "Streak Hari", value: 0, icon: Flame, color: "#dc2626", bg: "#fef2f2", trend: "-" },
 ];
 
 const GRADE_COLOR = { A: "#16a34a", "A-": "#22c55e", "B+": "#4338ca", B: "#6366f1", "B-": "#7c3aed", "C+": "#ea580c" };
 
-const ACTIVITY_HISTORY = [
-    { label: "Menyelesaikan Quiz Algoritma", time: "Hari ini, 10:00", dot: "#4338ca", icon: "✅" },
-    { label: "Mengunggah Tugas Komputasi Awan", time: "Kemarin, 22:30", dot: "#16a34a", icon: "📤" },
-    { label: "Bergabung Diskusi Grup AI", time: "28 Mei, 14:00", dot: "#ea580c", icon: "💬" },
-    { label: "Menyelesaikan Modul Deep Learning", time: "27 Mei, 09:15", dot: "#7c3aed", icon: "📖" },
-    { label: "Submit Proyek Akhir Mobile", time: "25 Mei, 23:45", dot: "#0891b2", icon: "🚀" },
-    { label: "Review Paper Kecerdasan Buatan", time: "24 Mei, 16:20", dot: "#059669", icon: "📝" },
-];
+const ACTIVITY_HISTORY = [];
 
 const HEATMAP_LEVELS = [0, 2, 3, 1, 0, 2, 3, 2, 1, 3, 0, 2, 3, 1, 2, 0, 3, 2, 1, 3, 2, 0, 1, 3, 2, 3, 1, 0, 2, 3, 1];
 const HEATMAP_COLORS = ["#f1f5f9", "#c7d2fe", "#818cf8", "#4338ca"];
@@ -316,6 +296,18 @@ export default function Profile() {
     const [avatarColor] = useState(["#4338ca", "#7c3aed", "#059669", "#dc2626", "#ea580c"][Math.floor(Math.random() * 5)]);
     const fileRef = useRef(null);
     const [avatarEmoji, setAvatarEmoji] = useState(null);
+
+    useEffect(() => {
+        const u = JSON.parse(localStorage.getItem('user') || '{}');
+        if (u.name) {
+            setProfile(p => ({
+                ...p,
+                name: u.name,
+                email: u.email,
+                nim: u.nim || p.nim,
+            }));
+        }
+    }, []);
 
     function handleSave(data) { setProfile(data); setEditing(false); }
     function copyEmail() {
@@ -586,7 +578,7 @@ export default function Profile() {
                                         <span style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", letterSpacing: 1, width: 120, textAlign: "center", textTransform: "uppercase" }}>Progress</span>
                                         <span style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", letterSpacing: 1, width: 60, textAlign: "right", textTransform: "uppercase" }}>Nilai</span>
                                     </div>
-                                    {INIT_COURSES.map(c => <CourseRow key={c.id} course={c} />)}
+                                    {INIT_COURSES.length > 0 ? INIT_COURSES.map(c => <CourseRow key={c.id} course={c} />) : <div style={{ padding: "30px 0", textAlign: "center", color: "#9ca3af" }}><p style={{ fontSize: 24, margin: "0 0 8px" }}>📚</p><p style={{ fontSize: 13, margin: 0 }}>Belum ada kelas.</p></div>}
                                 </div>
                             )}
 
@@ -632,7 +624,7 @@ export default function Profile() {
                                             <Target size={15} color="#4338ca" />Riwayat Aktivitas
                                         </p>
                                         <div style={{ borderLeft: "2px solid #e5e7eb", marginLeft: 8, display: "flex", flexDirection: "column", gap: 16 }}>
-                                            {ACTIVITY_HISTORY.map((a, i) => (
+                                            {ACTIVITY_HISTORY.length > 0 ? ACTIVITY_HISTORY.map((a, i) => (
                                                 <div key={i} style={{ position: "relative", paddingLeft: 20 }}>
                                                     <div style={{ position: "absolute", left: -9, top: 4, width: 16, height: 16, borderRadius: "50%", background: a.dot, border: "2px solid white", boxShadow: `0 0 0 2px ${a.dot}40` }} />
                                                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -643,7 +635,9 @@ export default function Profile() {
                                                         </div>
                                                     </div>
                                                 </div>
-                                            ))}
+                                            )) : (
+                                                <div style={{ paddingLeft: 20, color: "#9ca3af", fontSize: 12 }}>Belum ada riwayat aktivitas.</div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

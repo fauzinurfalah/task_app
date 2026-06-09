@@ -1984,6 +1984,11 @@ body {
     border-color: #4338ca;
 }
 
+.filter-tab--active:hover {
+    background: #3730a3;
+    border-color: #3730a3;
+}
+
 /* ===========================
    TASK FULL CARD (ManageTask)
 =========================== */

@@ -33,16 +33,7 @@ function pad(n) {
 
 // ─── Sample Events ────────────────────────────────────────────────────────────
 function buildEvents() {
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, "0");
-    return [
-        { id: 1, date: `${y}-${m}-03`, label: "Quiz Komputasi Awan",               type: "exam",       time: "09:00", location: "Online Submit" },
-        { id: 2, date: `${y}-${m}-08`, label: "Mobile Programming Lanjut",          type: "assignment", time: "11:59", location: "Online Submit" },
-        { id: 3, date: `${y}-${m}-14`, label: "Quiz Kecerdasan Buatan",             type: "exam",       time: "09:00", location: "Online Submit" },
-        { id: 4, date: `${y}-${m}-23`, label: "Tugas Kelompok - Jaringan Komputer", type: "assignment", time: "23:59", location: "Online Submit" },
-        { id: 5, date: `${y}-${m}-28`, label: "Web Programming Lanjut",             type: "meeting",    time: "14:30", location: "Online Submit" },
-    ];
+    return [];
 }
 
 const EVENTS = buildEvents();
@@ -289,7 +280,6 @@ export default function MahasiswaCalendarPage() {
                                 <button className="cal-grid-nav__btn" onClick={prevMonth}><ChevronLeft size={16} /></button>
                                 <h2 className="cal-grid-nav__title">{MONTH_NAMES[month]} {year}</h2>
                                 <button className="cal-grid-nav__btn" onClick={nextMonth}><ChevronRight size={16} /></button>
-                                <button className="cal-grid-nav__add" title="Add Event"><Plus size={16} /></button>
                             </div>
                             <div className="cal-day-headers">
                                 {DAY_NAMES.map(d => <div key={d} className="cal-day-header">{d}</div>)}
@@ -323,10 +313,13 @@ export default function MahasiswaCalendarPage() {
                             <p className="agenda-panel__date">{dateLabel}</p>
                             {upcomingEvent && <CountdownCard event={upcomingEvent} now={now} />}
                             <div className="agenda-list">
-                                {todayEvents.length > 0
-                                    ? todayEvents.map(ev => <AgendaItem key={ev.id} event={ev} now={now} />)
-                                    : EVENTS.slice(0, 3).map(ev => <AgendaItem key={ev.id} event={ev} now={now} />)
-                                }
+                                {EVENTS.length > 0 ? (
+                                    todayEvents.length > 0
+                                        ? todayEvents.map(ev => <AgendaItem key={ev.id} event={ev} now={now} />)
+                                        : EVENTS.slice(0, 3).map(ev => <AgendaItem key={ev.id} event={ev} now={now} />)
+                                ) : (
+                                    <p style={{color:'#9ca3af', fontSize:13, padding:"10px 0"}}>Belum ada agenda.</p>
+                                )}
                             </div>
                             <button className="btn-schedule"><CalendarCheck2 size={16} />View Full Schedule</button>
                         </div>

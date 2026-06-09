@@ -184,20 +184,7 @@ export default function MahasiswaDashboard() {
                                 Mata Kuliah Aktif
                             </h2>
                             <div className="course-grid">
-                                <CourseCard
-                                    icon={<Code2 size={20} color="#4338ca" />}
-                                    iconVariant="indigo"
-                                    title="Kecerdasan Buatan"
-                                    sub="3 SKS • Lab 1"
-                                    progress={75}
-                                />
-                                <CourseCard
-                                    icon={<Calculator size={20} color="#ea580c" />}
-                                    iconVariant="orange"
-                                    title="Mobile Programming Lanjut"
-                                    sub="4 SKS • Lab 2"
-                                    progress={40}
-                                />
+                                <p style={{color:'#9ca3af', padding:'10px 0'}}>Belum ada mata kuliah aktif.</p>
                             </div>
                         </div>
 
@@ -210,7 +197,7 @@ export default function MahasiswaDashboard() {
                         <div className="card">
                             <h2 className="card__title">Deadline Mendatang</h2>
                             <div className="deadline-list">
-                                {tasks.slice(0, 3).map(t => {
+                                {tasks.length > 0 ? tasks.slice(0, 3).map(t => {
                                     const date = new Date(t.task.deadline);
                                     const monthNames = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"];
                                     return (
@@ -225,7 +212,7 @@ export default function MahasiswaDashboard() {
                                             </div>
                                         </div>
                                     );
-                                })}
+                                }) : <p style={{color:'#9ca3af', fontSize:13}}>Belum ada deadline mendesak.</p>}
                             </div>
                             <button className="btn-outline">Lihat Kalender</button>
                         </div>
@@ -234,25 +221,7 @@ export default function MahasiswaDashboard() {
                         <div className="card">
                             <h2 className="card__title card__title--lg">Aktivitas Terakhir</h2>
                             <div className="activity-timeline">
-
-                                <div className="activity-item">
-                                    <div className="activity-item__dot dot--active" />
-                                    <p className="activity-item__title">Mengunggah Tugas Algoritma</p>
-                                    <p className="activity-item__time">10 Menit yang lalu</p>
-                                </div>
-
-                                <div className="activity-item">
-                                    <div className="activity-item__dot dot--inactive" />
-                                    <p className="activity-item__title">Diskusi Grup: Proyek AI</p>
-                                    <p className="activity-item__time">2 Jam yang lalu</p>
-                                </div>
-
-                                <div className="activity-item">
-                                    <div className="activity-item__dot dot--inactive" />
-                                    <p className="activity-item__title">Diskusi Grup: Komputasi Awan</p>
-                                    <p className="activity-item__time">Kemarin</p>
-                                </div>
-
+                                <p style={{color:'#9ca3af', fontSize:13}}>Belum ada aktivitas.</p>
                             </div>
                         </div>
                     </div>

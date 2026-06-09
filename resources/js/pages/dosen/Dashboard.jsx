@@ -70,7 +70,30 @@ export default function DosenDashboard() {
         rata_rata_nilai: 0,
     });
     const [tasks, setTasks] = useState([]);
+    const [matkuls, setMatkuls] = useState([]);
+    const [showMatkulModal, setShowMatkulModal] = useState(false);
+    const [matkulForm, setMatkulForm] = useState({ kode_mk: "", nama_matkul: "" });
+    const [matkulLoading, setMatkulLoading] = useState(false);
     const [user, setUser] = useState({});
+
+    async function handleAddMatkul(e) {
+        e.preventDefault();
+        setMatkulLoading(true);
+        try {
+            const res = await axiosClient.post('/dosen/mata-kuliah', {
+                ...matkulForm,
+                nama_dosen: user.name,
+            });
+            setMatkuls([...matkuls, res.data.mata_kuliah]);
+            setShowMatkulModal(false);
+            setMatkulForm({ kode_mk: "", nama_matkul: "" });
+        } catch (err) {
+            console.error(err);
+            alert("Gagal menambahkan kelas. Pastikan kode mata kuliah unik.");
+        } finally {
+            setMatkulLoading(false);
+        }
+    }
 
     useEffect(() => {
         const u = JSON.parse(localStorage.getItem('user') || '{}');
@@ -85,6 +108,10 @@ export default function DosenDashboard() {
                 // Filter active tasks
                 setTasks(data.filter(t => t.status === 'active').slice(0, 3));
             })
+            .catch(err => console.error(err));
+
+        axiosClient.get('/dosen/mata-kuliah')
+            .then(({ data }) => setMatkuls(data))
             .catch(err => console.error(err));
     }, []);
 
@@ -102,15 +129,12 @@ export default function DosenDashboard() {
                     <div>
                         <h1 className="topbar__title">Selamat Datang, {user.name}</h1>
                         <p className="topbar__subtitle">
-                            Ada 12 pengumpulan baru yang perlu diperiksa hari ini.
+                            Belum ada pengumpulan baru hari ini.
                         </p>
                     </div>
                     <div className="topbar__actions">
                         <button className="icon-btn"><Search size={17} /></button>
                         <button className="icon-btn"><Bell size={17} /></button>
-                        <button className="btn-primary" style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", fontSize: 13 }}>
-                            <Plus size={15} /> Buat Tugas
-                        </button>
                     </div>
                 </div>
 
@@ -169,38 +193,24 @@ export default function DosenDashboard() {
 
                         {/* Statistik Kelas */}
                         <div style={{ marginTop: "24px" }}>
-                            <h2 className="section-header__title" style={{ marginBottom: "14px" }}>
-                                Ringkasan Kelas
-                            </h2>
+                            <div className="section-header" style={{ marginBottom: "14px" }}>
+                                <h2 className="section-header__title">Ringkasan Kelas</h2>
+                                <button className="btn-link" onClick={() => setShowMatkulModal(true)}>+ Tambah Kelas</button>
+                            </div>
                             <div className="course-grid">
-                                <div className="course-card">
-                                    <div className="course-card__header">
-                                        <div className="course-card__icon icon-bg--indigo">
-                                            <BarChart2 size={20} color="#4338ca" />
-                                        </div>
-                                        <div>
-                                            <p className="course-card__title">Algoritma</p>
-                                            <p className="course-card__sub">42 Mahasiswa</p>
-                                        </div>
-                                    </div>
-                                    <div className="progress-bar">
-                                        <div className="progress-bar__fill" style={{ width: "90%" }} />
-                                    </div>
-                                </div>
-                                <div className="course-card">
-                                    <div className="course-card__header">
-                                        <div className="course-card__icon icon-bg--orange">
-                                            <BarChart2 size={20} color="#ea580c" />
-                                        </div>
-                                        <div>
-                                            <p className="course-card__title">Jaringan Komputer</p>
-                                            <p className="course-card__sub">35 Mahasiswa</p>
+                                {matkuls.length > 0 ? matkuls.map(m => (
+                                    <div className="course-card" key={m.id_matkul || m.kode_mk}>
+                                        <div className="course-card__header">
+                                            <div className="course-card__icon icon-bg--indigo">
+                                                <BookOpen size={20} color="#4338ca" />
+                                            </div>
+                                            <div>
+                                                <p className="course-card__title">{m.nama_matkul}</p>
+                                                <p className="course-card__sub">{m.kode_mk}</p>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div className="progress-bar">
-                                        <div className="progress-bar__fill" style={{ width: "57%" }} />
-                                    </div>
-                                </div>
+                                )) : <p style={{color:'#9ca3af', padding:'10px 0'}}>Belum ada kelas aktif.</p>}
                             </div>
                         </div>
                     </div>
@@ -212,10 +222,7 @@ export default function DosenDashboard() {
                         <div className="card">
                             <h2 className="card__title">Pengumpulan Terbaru</h2>
                             <div className="deadline-list" style={{ gap: "8px" }}>
-                                <SubmissionItem name="Andi"   nim="2021001" task="Sorting Algorithm" status="submitted" time="10 menit lalu" />
-                                <SubmissionItem name="Sari"   nim="2021015" task="Jaringan - Lab 3"  status="late"      time="2 jam lalu"   />
-                                <SubmissionItem name="Rizky"  nim="2021032" task="Sorting Algorithm" status="submitted" time="3 jam lalu"   />
-                                <SubmissionItem name="Dewi"   nim="2021007" task="Sorting Algorithm" status="pending"   time="—"            />
+                                <p style={{color:'#9ca3af', fontSize:13}}>Belum ada pengumpulan.</p>
                             </div>
                             <button className="btn-outline">Lihat Semua Pengumpulan</button>
                         </div>
@@ -224,21 +231,7 @@ export default function DosenDashboard() {
                         <div className="card">
                             <h2 className="card__title card__title--lg">Aktivitas Terakhir</h2>
                             <div className="activity-timeline">
-                                <div className="activity-item">
-                                    <div className="activity-item__dot dot--active" />
-                                    <p className="activity-item__title">Memberi nilai: Algoritma Sorting (Andi)</p>
-                                    <p className="activity-item__time">15 Menit yang lalu</p>
-                                </div>
-                                <div className="activity-item">
-                                    <div className="activity-item__dot dot--inactive" />
-                                    <p className="activity-item__title">Membuat tugas baru: Proyek ML</p>
-                                    <p className="activity-item__time">1 Jam yang lalu</p>
-                                </div>
-                                <div className="activity-item">
-                                    <div className="activity-item__dot dot--inactive" />
-                                    <p className="activity-item__title">Mengumumkan revisi deadline: Jaringan</p>
-                                    <p className="activity-item__time">Kemarin</p>
-                                </div>
+                                <p style={{color:'#9ca3af', fontSize:13}}>Belum ada aktivitas.</p>
                             </div>
                         </div>
                     </div>
@@ -246,6 +239,29 @@ export default function DosenDashboard() {
                 </div>
 
             </main>
+
+            {/* MODAL TAMBAH KELAS */}
+            {showMatkulModal && (
+                <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
+                    <div style={{ background: "white", padding: 24, borderRadius: 16, width: 400, animation: "pop-in 0.3s ease" }}>
+                        <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 16 }}>Tambah Kelas Baru</h2>
+                        <form onSubmit={handleAddMatkul} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                            <div>
+                                <label style={{ fontSize: 13, fontWeight: 700 }}>Kode Mata Kuliah</label>
+                                <input required type="text" value={matkulForm.kode_mk} onChange={e => setMatkulForm({...matkulForm, kode_mk: e.target.value})} style={{ width: "100%", padding: 10, borderRadius: 8, border: "1px solid #e5e7eb", marginTop: 4, outline: "none", fontFamily: "inherit" }} placeholder="e.g. IF101" />
+                            </div>
+                            <div>
+                                <label style={{ fontSize: 13, fontWeight: 700 }}>Nama Mata Kuliah</label>
+                                <input required type="text" value={matkulForm.nama_matkul} onChange={e => setMatkulForm({...matkulForm, nama_matkul: e.target.value})} style={{ width: "100%", padding: 10, borderRadius: 8, border: "1px solid #e5e7eb", marginTop: 4, outline: "none", fontFamily: "inherit" }} placeholder="e.g. Pemrograman Web" />
+                            </div>
+                            <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+                                <button type="button" onClick={() => setShowMatkulModal(false)} style={{ flex: 1, padding: 10, borderRadius: 8, border: "1px solid #e5e7eb", background: "white", cursor: "pointer", fontWeight: 700, fontFamily: "inherit" }}>Batal</button>
+                                <button type="submit" disabled={matkulLoading} style={{ flex: 1, padding: 10, borderRadius: 8, border: "none", background: "#4338ca", color: "white", cursor: "pointer", fontWeight: 700, fontFamily: "inherit", opacity: matkulLoading ? 0.7 : 1 }}>{matkulLoading ? "Menyimpan..." : "Simpan"}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

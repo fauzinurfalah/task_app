@@ -122,20 +122,14 @@ export default function Sidebar({ role = "mahasiswa" }) {
                 })}
             </nav>
 
-            {/* USER PROFILE */}
-            <div className="sidebar__profile">
-                <div className="sidebar__avatar">{userInitial}</div>
-                <div>
-                    <p className="sidebar__profile-name">{userName}</p>
-                    <p className="sidebar__profile-role">{userEmail}</p>
             {/* PROFILE POPUP */}
             {popupOpen && (
                 <div className="sidebar__profile-popup" ref={popupRef}>
                     <div className="sidebar__profile-popup-header">
-                        <div className="sidebar__avatar sidebar__avatar--lg">{meta.avatar}</div>
+                        <div className="sidebar__avatar sidebar__avatar--lg">{userInitial}</div>
                         <div>
-                            <p className="sidebar__profile-name">{meta.name}</p>
-                            <p className="sidebar__profile-role">{meta.sub}</p>
+                            <p className="sidebar__profile-name">{userName}</p>
+                            <p className="sidebar__profile-role">{userEmail}</p>
                         </div>
                     </div>
                     <div className="sidebar__profile-popup-divider" />
@@ -164,10 +158,10 @@ export default function Sidebar({ role = "mahasiswa" }) {
                 onClick={() => setPopupOpen((v) => !v)}
                 title="Profil"
             >
-                <div className="sidebar__avatar">{meta.avatar}</div>
+                <div className="sidebar__avatar">{userInitial}</div>
                 <div className="sidebar__profile-btn-info">
-                    <p className="sidebar__profile-name">{meta.name}</p>
-                    <p className="sidebar__profile-role">{meta.sub}</p>
+                    <p className="sidebar__profile-name">{userName}</p>
+                    <p className="sidebar__profile-role">{userEmail}</p>
                 </div>
                 <ChevronUp
                     size={15}
