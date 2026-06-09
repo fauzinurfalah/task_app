@@ -72,8 +72,7 @@ export default function Sidebar({ role = "mahasiswa" }) {
             {/* NAV */}
             <nav className="sidebar__nav">
                 {links.map(({ to, icon, label }) => {
-                    const isActive = to === "/dashboard" ? path === "/dashboard" : path.startsWith(to);
-                    const isActive = path === to;
+                    const isActive = path === to || (to !== "/mahasiswa" && to !== "/dosen" && path.startsWith(to));
                     return (
                         <Link
                             key={to}
