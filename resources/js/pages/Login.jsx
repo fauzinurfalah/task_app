@@ -64,7 +64,7 @@ export default function Auth() {
     const [mode, setMode]       = useState("login");
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
-    const [form, setForm]       = useState({ name:"",nim:"",email:"",password:"",confirm:"" });
+    const [form, setForm] = useState({ name:"", nim:"", email:"", password:"", confirm:"", role:"mahasiswa" });
     const [errors, setErrors]   = useState({});
     const [apiError, setApiError] = useState("");
 
@@ -98,17 +98,30 @@ export default function Auth() {
                     password: form.password,
                 });
                 localStorage.setItem("user", JSON.stringify(response.data.user));
+                localStorage.setItem("token", response.data.token);
+                const role = response.data.user?.role || "mahasiswa";
+                setSuccess(true);
+                setTimeout(() => {
+                    navigate(role === "dosen" ? "/dosen" : "/mahasiswa");
+                }, 1000);
+                return;
             } else {
                 const response = await axios.post("/api/register", {
                     name: form.name,
+                    nim: form.nim,
                     email: form.email,
                     password: form.password,
+                    role: form.role,
                 });
                 localStorage.setItem("user", JSON.stringify(response.data.user));
+                localStorage.setItem("token", response.data.token);
+                const role = response.data.user?.role || "mahasiswa";
+                setSuccess(true);
+                setTimeout(() => {
+                    navigate(role === "dosen" ? "/dosen" : "/mahasiswa");
+                }, 1000);
+                return;
             }
-
-            setSuccess(true);
-            setTimeout(() => navigate("/mahasiswa"), 1200);
         } catch (err) {
             const msg = err.response?.data?.message;
             const validationErrors = err.response?.data?.errors;
@@ -217,8 +230,22 @@ export default function Auth() {
                     <form onSubmit={handleSubmit} style={{ display:"flex",flexDirection:"column",gap:16,animation:"slide-up .5s ease .25s both" }}>
                         {!isLogin && (
                             <>
-                                <Field label="Nama Lengkap" value={form.name} onChange={set("name")} placeholder="Fauzi Ramadhan" icon="👤" error={errors.name}/>
-                                <Field label="NIM" value={form.nim} onChange={set("nim")} placeholder="12345678" icon="🎓" error={errors.nim}/>
+                                <Field label="Nama Lengkap" value={form.name} onChange={set("name")} placeholder="Zackary Candra" icon="👤" error={errors.name}/>
+                                <Field label="NIM / NIP" value={form.nim} onChange={set("nim")} placeholder="12345678" icon="🎓" error={errors.nim}/>
+                                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 4 }}>
+                                    <label style={{ fontSize:12,fontWeight:700,color:"#374151" }}>Peran (Role)</label>
+                                    <div style={{ position:"relative" }}>
+                                        <span style={{ position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",fontSize:16,color:"#9ca3af",pointerEvents:"none" }}>🎭</span>
+                                        <select 
+                                            value={form.role} 
+                                            onChange={set("role")} 
+                                            style={{ width:"100%",padding:"12px 14px 12px 42px",border:"1.5px solid #e5e7eb",borderRadius:12,fontSize:14,fontFamily:"inherit",outline:"none",transition:"all .2s",background:"#fafafa",appearance:"none",cursor:"pointer" }}
+                                        >
+                                            <option value="mahasiswa">Mahasiswa</option>
+                                            <option value="dosen">Dosen</option>
+                                        </select>
+                                    </div>
+                                </div>
                             </>
                         )}
                         <Field label="Email" type="email" value={form.email} onChange={set("email")} placeholder="nama@student.ac.id" icon="✉️" error={errors.email}/>

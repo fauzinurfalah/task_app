@@ -1,5 +1,7 @@
+import { useState, useEffect } from "react";
 import Sidebar from "../../components/Sidebar";
 import { Search, Bell, Plus, Clock3, Code2, Calculator } from "lucide-react";
+import axiosClient from "../../axiosClient";
 
 // ─── Circular Progress ───────────────────────────────────────────────────────
 function CircleProgress({ percent = 75 }) {
@@ -42,24 +44,27 @@ function CircleProgress({ percent = 75 }) {
     );
 }
 
-// ─── Task Item ────────────────────────────────────────────────────────────────
-function TaskItem({ title, badge, badgeVariant, time, timeVariant }) {
+import { Link } from "react-router-dom";
+
+function TaskItem({ id, title, badge, badgeVariant, time, timeVariant }) {
     return (
-        <div className="task-item">
-            <div className="task-item__checkbox" />
-            <div className="task-item__body">
-                <p className="task-item__title">{title}</p>
-                <div className="task-item__meta">
-                    <span className={`task-item__badge badge--${badgeVariant}`}>
-                        {badge}
-                    </span>
-                    <div className={`task-item__time time--${timeVariant}`}>
-                        <Clock3 size={13} />
-                        {time}
+        <Link to="/mahasiswa/tasks/detail" state={{ taskId: id }} style={{ textDecoration: "none", color: "inherit" }}>
+            <div className="task-item">
+                <div className="task-item__checkbox" />
+                <div className="task-item__body">
+                    <p className="task-item__title">{title}</p>
+                    <div className="task-item__meta">
+                        <span className={`task-item__badge badge--${badgeVariant}`}>
+                            {badge}
+                        </span>
+                        <div className={`task-item__time time--${timeVariant}`}>
+                            <Clock3 size={13} />
+                            {time}
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </Link>
     );
 }
 
@@ -83,8 +88,31 @@ function CourseCard({ icon, iconVariant, title, sub, progress }) {
     );
 }
 
-// ─── Mahasiswa Dashboard ───────────────────────────────────────────────────────
+// ─── Mahasiswa Dashboard ─────────────────────────────────────────────────────
 export default function MahasiswaDashboard() {
+    const [user, setUser] = useState({});
+    const [stats, setStats] = useState({ tugas_selesai: 0, tugas_aktif: 0, total_tugas: 0, rata_nilai: 0 });
+    const [tasks, setTasks] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const u = JSON.parse(localStorage.getItem('user') || '{}');
+        setUser(u);
+
+        axiosClient.get('/mahasiswa/dashboard-stats')
+            .then(({ data }) => setStats(data))
+            .catch(err => console.error(err));
+
+        axiosClient.get('/mahasiswa/tasks')
+            .then(({ data }) => setTasks(data.slice(0, 4)))
+            .catch(err => console.error(err))
+            .finally(() => setLoading(false));
+    }, []);
+
+    const percent = stats.total_tugas > 0
+        ? Math.round((stats.tugas_selesai / stats.total_tugas) * 100)
+        : 0;
+
     return (
         <div className="app-wrapper">
 
@@ -97,9 +125,9 @@ export default function MahasiswaDashboard() {
                 {/* TOPBAR */}
                 <div className="topbar">
                     <div>
-                        <h1 className="topbar__title">Selamat Datang, Fauzi</h1>
+                        <h1 className="topbar__title">Selamat Datang, {user.name}</h1>
                         <p className="topbar__subtitle">
-                            Kamu punya 4 tugas yang harus diselesaikan hari ini.
+                            Kamu punya {stats.tugas_aktif} tugas yang harus diselesaikan.
                         </p>
                     </div>
                     <div className="topbar__actions">
@@ -120,12 +148,12 @@ export default function MahasiswaDashboard() {
                                 <p className="progress-card__label">Progress Mingguan</p>
                                 <h2 className="progress-card__title">Hampir Selesai!</h2>
                                 <p className="progress-card__desc">
-                                    Penyelesaian tugas kamu meningkat 12% dibandingkan minggu lalu.
-                                    Pertahankan ritme ini untuk menjaga IPK kamu tetap stabil.
+                                    Kamu sudah menyelesaikan {stats.tugas_selesai} dari {stats.total_tugas} tugas.
+                                    Rata-rata nilaimu: <strong>{stats.rata_nilai}</strong>.
                                 </p>
-                                <button className="btn-primary">Lihat Analitik Lengkap</button>
+                                <Link to="/mahasiswa/tasks" className="btn-primary" style={{ textDecoration: "none" }}>Lihat Semua Tugas</Link>
                             </div>
-                            <CircleProgress percent={75} />
+                            <CircleProgress percent={percent} />
                         </div>
 
                         {/* Tugas Hari Ini */}
@@ -135,20 +163,19 @@ export default function MahasiswaDashboard() {
                         </div>
 
                         <div className="task-list">
-                            <TaskItem
-                                title="Algoritma"
-                                badge="Matematika"
-                                badgeVariant="indigo"
-                                time="14:00"
-                                timeVariant="red"
-                            />
-                            <TaskItem
-                                title="Komputasi Awan"
-                                badge="Teknik Komputer"
-                                badgeVariant="orange"
-                                time="18:00"
-                                timeVariant="gray"
-                            />
+                            {tasks.length > 0 ? tasks.map(t => (
+                                <TaskItem
+                                    key={t.task.id_task}
+                                    id={t.task.id_task}
+                                    title={t.task.nama_tugas}
+                                    badge={t.task.nama_matkul || "Umum"}
+                                    badgeVariant="indigo"
+                                    time={t.task.jam || "23:59"}
+                                    timeVariant="red"
+                                />
+                            )) : (
+                                <p style={{ color: "#9ca3af", textAlign: "center", padding: "20px 0" }}>Belum ada tugas.</p>
+                            )}
                         </div>
 
                         {/* Mata Kuliah Aktif */}
@@ -183,29 +210,22 @@ export default function MahasiswaDashboard() {
                         <div className="card">
                             <h2 className="card__title">Deadline Mendatang</h2>
                             <div className="deadline-list">
-
-                                <div className="deadline-item">
-                                    <div className="deadline-item__date deadline-item__date--red">
-                                        <p className="deadline-item__month">Mei</p>
-                                        <p className="deadline-item__day">24</p>
-                                    </div>
-                                    <div>
-                                        <p className="deadline-item__title">Quiz Kecerdasan Buatan</p>
-                                        <p className="deadline-item__sub"> 09:00 AM</p>
-                                    </div>
-                                </div>
-
-                                <div className="deadline-item">
-                                    <div className="deadline-item__date deadline-item__date--indigo">
-                                        <p className="deadline-item__month">Mei</p>
-                                        <p className="deadline-item__day">26</p>
-                                    </div>
-                                    <div>
-                                        <p className="deadline-item__title">Proyek Akhir Database</p>
-                                        <p className="deadline-item__sub">Online Submission</p>
-                                    </div>
-                                </div>
-
+                                {tasks.slice(0, 3).map(t => {
+                                    const date = new Date(t.task.deadline);
+                                    const monthNames = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"];
+                                    return (
+                                        <div key={t.task.id_task} className="deadline-item">
+                                            <div className="deadline-item__date deadline-item__date--red">
+                                                <p className="deadline-item__month">{monthNames[date.getMonth()]}</p>
+                                                <p className="deadline-item__day">{date.getDate()}</p>
+                                            </div>
+                                            <div>
+                                                <p className="deadline-item__title">{t.task.nama_tugas}</p>
+                                                <p className="deadline-item__sub">{t.task.jam || "23:59"}</p>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                             <button className="btn-outline">Lihat Kalender</button>
                         </div>

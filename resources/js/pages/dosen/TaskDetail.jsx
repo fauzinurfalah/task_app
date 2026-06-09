@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import Sidebar from "../../components/Sidebar";
 import {
     ChevronLeft, Clock3, Users, BookOpen, CheckCircle2,
     AlertCircle, Download, Edit3, Trash2, Save, X,
 } from "lucide-react";
+import axiosClient from "../../axiosClient";
+import { useNavigate } from "react-router-dom";
 
 // ─── Sample Task ──────────────────────────────────────────────────────────────
 const TASKS_DB = {
@@ -25,28 +27,92 @@ const TASKS_DB = {
 
 const DEFAULT_TASK = TASKS_DB[1];
 
-// ─── Submission preview in detail ─────────────────────────────────────────────
-const SUBMISSIONS_PREVIEW = [
-    { name: "Andi Saputra",  nim: "2021001", status: "submitted", grade: null,   time: "10 menit lalu",  file: "andi_sorting.zip" },
-    { name: "Sari Dewi",     nim: "2021015", status: "late",      grade: null,   time: "2 jam lalu",     file: "sari_sorting.zip" },
-    { name: "Rizky Maulana", nim: "2021032", status: "submitted", grade: 88,     time: "3 jam lalu",     file: "rizky_sorting.zip" },
-    { name: "Dewi Lestari",  nim: "2021007", status: "pending",   grade: null,   time: "—",              file: null },
-    { name: "Budi Santoso",  nim: "2021044", status: "submitted", grade: 92,     time: "5 jam lalu",     file: "budi_sorting.zip" },
-];
+// Removed hardcoded SUBMISSIONS_PREVIEW
 
 // ─── Task Detail Page ─────────────────────────────────────────────────────────
 export default function DosenTaskDetail() {
     const [params]   = useSearchParams();
-    const taskId     = parseInt(params.get("id") || "1");
-    const task       = TASKS_DB[taskId] || DEFAULT_TASK;
+    const taskId     = params.get("id");
+    const [task, setTask] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     const [editing, setEditing]   = useState(false);
-    const [title, setTitle]       = useState(task.title);
-    const [desc, setDesc]         = useState(task.desc);
-    const [deadline, setDeadline] = useState(task.deadline);
+    const [title, setTitle]       = useState("");
+    const [desc, setDesc]         = useState("");
+    const [deadline, setDeadline] = useState("");
+    const [namaMatkul, setNamaMatkul] = useState("");
+    const [attachment, setAttachment] = useState(null);
+    const [points, setPoints]     = useState(100);
 
-    const submitted = SUBMISSIONS_PREVIEW.filter(s => s.status !== "pending").length;
-    const graded    = SUBMISSIONS_PREVIEW.filter(s => s.grade !== null).length;
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        if (!taskId) {
+            setTask({ rubric: [], attachments: [], total: 0, points: 100 });
+            setEditing(true);
+            setLoading(false);
+            return;
+        }
+        axiosClient.get(`/dosen/tasks/${taskId}`)
+            .then(({ data }) => {
+                setTask(data);
+                setTitle(data.nama_tugas);
+                setDesc(data.deskripsi || "");
+                setDeadline(data.deadline || "");
+                setNamaMatkul(data.nama_matkul || "");
+            })
+            .catch(err => console.error(err))
+            .finally(() => setLoading(false));
+    }, [taskId]);
+
+    const handleDelete = async () => {
+        if (confirm("Apakah anda yakin ingin menghapus tugas ini?")) {
+            try {
+                await axiosClient.delete(`/dosen/tasks/${taskId}`);
+                navigate("/dosen/tasks");
+            } catch (err) {
+                console.error(err);
+                alert("Gagal menghapus tugas.");
+            }
+        }
+    };
+
+    const handleSave = async () => {
+        try {
+            const formData = new FormData();
+            formData.append("nama_tugas", title);
+            formData.append("nama_matkul", namaMatkul || "Umum");
+            formData.append("deskripsi", desc);
+            formData.append("deadline", deadline || "2026-12-31");
+            if (attachment) {
+                formData.append("attachment", attachment);
+            }
+            // For Laravel PUT requests via FormData, we need to spoof the method
+            if (taskId) {
+                formData.append("_method", "PUT");
+                await axiosClient.post(`/dosen/tasks/${taskId}`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+            } else {
+                await axiosClient.post(`/dosen/tasks`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+            }
+            navigate("/dosen/tasks");
+        } catch (err) {
+            console.error(err);
+            alert("Gagal menyimpan tugas.");
+        }
+    };
+
+    if (loading) return <div className="app-wrapper"><main className="main-content"><p>Loading task detail...</p></main></div>;
+    if (!task) return <div className="app-wrapper"><main className="main-content"><p>Task not found.</p></main></div>;
+
+    const submissionsList = task?.submissions || [];
+    const submitted = task?.submitted_count || 0;
+    const graded    = task?.graded_count || 0;
+    const totalSubs = task?.submissions_count || 0;
+    const lateSubs  = submissionsList.filter(s => s.status === 'late').length;
 
     return (
         <div className="app-wrapper">
@@ -69,19 +135,22 @@ export default function DosenTaskDetail() {
                         <div className="card" style={{ marginBottom: 16 }}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
                                 <div>
-                                    <span className={`task-item__badge badge--${task.courseVariant}`} style={{ fontSize: 12 }}>{task.course}</span>
                                     {editing
-                                        ? <input className="edit-input edit-input--title" value={title} onChange={e => setTitle(e.target.value)} />
+                                        ? <input className="edit-input" placeholder="Mata Kuliah" value={namaMatkul} onChange={e => setNamaMatkul(e.target.value)} style={{marginBottom: 8}} />
+                                        : <span className={`task-item__badge badge--indigo`} style={{ fontSize: 12 }}>{task.nama_matkul || "Umum"}</span>
+                                    }
+                                    {editing
+                                        ? <input className="edit-input edit-input--title" placeholder="Judul Tugas" value={title} onChange={e => setTitle(e.target.value)} />
                                         : <h1 style={{ fontSize: 22, fontWeight: 800, color: "#111827", margin: "8px 0 0 0" }}>{title}</h1>
                                     }
                                 </div>
                                 <div style={{ display: "flex", gap: 8 }}>
                                     {editing ? (
                                         <>
-                                            <button className="btn-primary" style={{ padding: "8px 14px", fontSize: 12, display: "flex", alignItems: "center", gap: 5 }} onClick={() => setEditing(false)}>
+                                            <button className="btn-primary" style={{ padding: "8px 14px", fontSize: 12, display: "flex", alignItems: "center", gap: 5 }} onClick={handleSave}>
                                                 <Save size={13} /> Simpan
                                             </button>
-                                            <button className="btn-outline" style={{ margin: 0, width: "auto", padding: "8px 14px", fontSize: 12, display: "flex", alignItems: "center", gap: 5 }} onClick={() => setEditing(false)}>
+                                            <button className="btn-outline" style={{ margin: 0, width: "auto", padding: "8px 14px", fontSize: 12, display: "flex", alignItems: "center", gap: 5 }} onClick={() => { if(!taskId) navigate("/dosen/tasks"); else setEditing(false); }}>
                                                 <X size={13} /> Batal
                                             </button>
                                         </>
@@ -90,7 +159,7 @@ export default function DosenTaskDetail() {
                                             <button className="btn-outline" style={{ margin: 0, width: "auto", padding: "8px 14px", fontSize: 12, display: "flex", alignItems: "center", gap: 5 }} onClick={() => setEditing(true)}>
                                                 <Edit3 size={13} /> Edit
                                             </button>
-                                            <button className="btn-outline" style={{ margin: 0, width: "auto", padding: "8px 14px", fontSize: 12, display: "flex", alignItems: "center", gap: 5, color: "#dc2626", borderColor: "#fee2e2" }}>
+                                            <button className="btn-outline" style={{ margin: 0, width: "auto", padding: "8px 14px", fontSize: 12, display: "flex", alignItems: "center", gap: 5, color: "#dc2626", borderColor: "#fee2e2" }} onClick={handleDelete}>
                                                 <Trash2 size={13} /> Hapus
                                             </button>
                                         </>
@@ -104,11 +173,11 @@ export default function DosenTaskDetail() {
                                     <Clock3 size={14} color="#6b7280" />
                                     {editing
                                         ? <input type="date" className="edit-input" value={deadline} onChange={e => setDeadline(e.target.value)} />
-                                        : <span>{task.deadline} • {task.time}</span>
+                                        : <span>{task.deadline} • {task.jam}</span>
                                     }
                                 </div>
-                                <div className="detail-meta-item"><Users size={14} color="#6b7280" /><span>{task.total} mahasiswa</span></div>
-                                <div className="detail-meta-item"><BookOpen size={14} color="#6b7280" /><span>{task.points} poin</span></div>
+                                <div className="detail-meta-item"><Users size={14} color="#6b7280" /><span>{totalSubs} mahasiswa</span></div>
+                                <div className="detail-meta-item"><BookOpen size={14} color="#6b7280" /><span>{points} poin</span></div>
                             </div>
 
                             {/* Description */}
@@ -127,7 +196,7 @@ export default function DosenTaskDetail() {
                                     <tr><th>Kriteria</th><th>Poin</th></tr>
                                 </thead>
                                 <tbody>
-                                    {task.rubric.map((r, i) => (
+                                    {(task.rubric || []).map((r, i) => (
                                         <tr key={i}>
                                             <td>{r.item}</td>
                                             <td><span className="status-badge status--indigo">{r.poin}</span></td>
@@ -135,7 +204,7 @@ export default function DosenTaskDetail() {
                                     ))}
                                     <tr style={{ borderTop: "2px solid #e5e7eb" }}>
                                         <td style={{ fontWeight: 800 }}>Total</td>
-                                        <td><span className="status-badge status--green">{task.points}</span></td>
+                                        <td><span className="status-badge status--green">{task.points || points}</span></td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -143,15 +212,31 @@ export default function DosenTaskDetail() {
 
                         {/* Attachments */}
                         <div className="card">
-                            <h2 className="card__title">Lampiran</h2>
-                            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                                {task.attachments.map((f, i) => (
-                                    <div key={i} className="attachment-chip">
-                                        <Download size={13} />
-                                        <span>{f}</span>
-                                    </div>
-                                ))}
-                            </div>
+                            <h2 className="card__title">Lampiran Tugas</h2>
+                            {editing ? (
+                                <div style={{ marginTop: 8 }}>
+                                    <input type="file" onChange={e => setAttachment(e.target.files[0])} style={{ fontSize: 13 }} />
+                                    {attachment && <p style={{ fontSize: 12, color: "#16a34a", margin: "4px 0 0" }}>File terpilih: {attachment.name}</p>}
+                                </div>
+                            ) : (
+                                <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
+                                    {task.attachment ? (
+                                        <>
+                                            {task.attachment.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
+                                                <div style={{ marginBottom: 12, borderRadius: 12, overflow: "hidden", border: "1px solid #f3f4f6" }}>
+                                                    <img src={`http://127.0.0.1:8000/storage/${task.attachment}`} alt="Lampiran Dosen" style={{ width: "100%", height: "auto", display: "block" }} />
+                                                </div>
+                                            ) : null}
+                                            <a href={`http://127.0.0.1:8000/storage/${task.attachment}`} target="_blank" rel="noopener noreferrer" className="attachment-chip" style={{ textDecoration: "none", width: "fit-content" }}>
+                                                <Download size={13} />
+                                                <span>{task.attachment.split('/').pop()}</span>
+                                            </a>
+                                        </>
+                                    ) : (
+                                        <span style={{ fontSize: 13, color: "#9ca3af" }}>Tidak ada lampiran.</span>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -163,10 +248,10 @@ export default function DosenTaskDetail() {
                             <h2 className="card__title">Statistik</h2>
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                                 {[
-                                    { label: "Dikumpulkan", val: submitted, total: task.total, cls: "status--green" },
-                                    { label: "Dinilai",     val: graded,    total: task.total, cls: "status--indigo" },
-                                    { label: "Belum",       val: task.total - submitted, total: task.total, cls: "status--gray" },
-                                    { label: "Terlambat",   val: SUBMISSIONS_PREVIEW.filter(s=>s.status==="late").length, total: task.total, cls: "status--red" },
+                                    { label: "Dikumpulkan", val: submitted, total: totalSubs || 1, cls: "status--green" },
+                                    { label: "Dinilai",     val: graded,    total: totalSubs || 1, cls: "status--indigo" },
+                                    { label: "Belum",       val: Math.max(0, totalSubs - submitted), total: totalSubs || 1, cls: "status--gray" },
+                                    { label: "Terlambat",   val: lateSubs, total: totalSubs || 1, cls: "status--red" },
                                 ].map(s => (
                                     <div key={s.label} className="mini-stat">
                                         <p className="mini-stat__val">{s.val}</p>
@@ -185,21 +270,25 @@ export default function DosenTaskDetail() {
                                 <h2 className="card__title" style={{ margin: 0 }}>Pengumpulan Terbaru</h2>
                                 <Link to={`/dosen/submissions?task=${task.id}`} className="btn-link">Lihat Semua</Link>
                             </div>
-                            {SUBMISSIONS_PREVIEW.slice(0, 4).map((s, i) => (
-                                <div key={i} className="submission-item">
-                                    <div className="submission-item__avatar">{s.name.charAt(0)}</div>
-                                    <div className="submission-item__body">
-                                        <p className="submission-item__name">{s.name} <span className="submission-item__nim">({s.nim})</span></p>
-                                        <p className="submission-item__task">{s.time}</p>
+                            {submissionsList.length === 0 ? (
+                                <p style={{ fontSize: 13, color: "#6b7280", marginTop: 10 }}>Belum ada pengumpulan.</p>
+                            ) : (
+                                submissionsList.slice(0, 4).map((s, i) => (
+                                    <div key={i} className="submission-item">
+                                        <div className="submission-item__avatar">{s.user?.name?.charAt(0) || "U"}</div>
+                                        <div className="submission-item__body">
+                                            <p className="submission-item__name">{s.user?.name} <span className="submission-item__nim">({s.user?.nim})</span></p>
+                                            <p className="submission-item__task">{new Date(s.created_at).toLocaleString()}</p>
+                                        </div>
+                                        <div className="submission-item__right">
+                                            <span className={`status-badge ${s.status === "submitted" ? "status--green" : s.status === "late" ? "status--red" : "status--gray"}`}>
+                                                {s.status === "submitted" ? "Dikumpulkan" : s.status === "late" ? "Terlambat" : "Belum"}
+                                            </span>
+                                            {s.grade && <span style={{ fontSize: 11, fontWeight: 700, color: "#4338ca" }}>{s.grade}/100</span>}
+                                        </div>
                                     </div>
-                                    <div className="submission-item__right">
-                                        <span className={`status-badge ${s.status === "submitted" ? "status--green" : s.status === "late" ? "status--red" : "status--gray"}`}>
-                                            {s.status === "submitted" ? "Dikumpulkan" : s.status === "late" ? "Terlambat" : "Belum"}
-                                        </span>
-                                        {s.grade && <span style={{ fontSize: 11, fontWeight: 700, color: "#4338ca" }}>{s.grade}/100</span>}
-                                    </div>
-                                </div>
-                            ))}
+                                ))
+                            )}
                             <Link to={`/dosen/grading?task=${task.id}`} className="btn-primary" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px", fontSize: 13, marginTop: 14, textDecoration: "none" }}>
                                 <CheckCircle2 size={14} /> Mulai Penilaian
                             </Link>

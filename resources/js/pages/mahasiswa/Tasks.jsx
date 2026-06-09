@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../../components/Sidebar";
 import {
@@ -7,6 +7,7 @@ import {
     Circle, MoreHorizontal, Flame, Calendar, Tag,
     ArrowUpRight, Trash2, Edit3, Target, Zap, TrendingUp,
 } from "lucide-react";
+import axiosClient from "../../axiosClient";
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 const INIT_TASKS = [
@@ -244,7 +245,8 @@ function TaskCard({ task, onToggle, onDelete, onClick }) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function Tasks() {
     const navigate = useNavigate();
-    const [tasks, setTasks] = useState(INIT_TASKS);
+    const [tasks, setTasks] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [tab, setTab] = useState("all");
     const [showFilter, setShowFilter] = useState(false);
@@ -252,6 +254,31 @@ export default function Tasks() {
     const [fType, setFType] = useState("all");
     const [fPri, setFPri] = useState("all");
     const [sort, setSort] = useState("due");
+
+    useEffect(() => {
+        axiosClient.get('/mahasiswa/tasks')
+            .then(({ data }) => {
+                const mapped = data.map(item => ({
+                    id: item.task.id_task,
+                    submissionId: item.submission?.id || null,
+                    title: item.task.nama_tugas || "-",
+                    course: item.task.nama_matkul || "Umum",
+                    courseCode: item.task.mata_kuliah?.kode_mk || "-",
+                    type: "assignment",
+                    priority: item.task.prioritas || "medium",
+                    status: item.status === "submitted" ? "completed" :
+                            item.status === "late" ? "completed" : "pending",
+                    due: item.task.deadline || "",
+                    dueTime: item.task.jam || "23:59",
+                    progress: item.status === "submitted" || item.status === "late" ? 100 : 0,
+                    tags: [],
+                    description: item.task.deskripsi || "",
+                }));
+                setTasks(mapped);
+            })
+            .catch(err => console.error(err))
+            .finally(() => setLoading(false));
+    }, []);
 
     function toggleTask(id) {
         setTasks(ts => ts.map(t => t.id === id
@@ -305,13 +332,8 @@ export default function Tasks() {
                 <div className="topbar">
                     <div>
                         <h1 className="topbar__title">Tugas</h1>
-                        <p className="topbar__subtitle">Kelola semua tugasmu di satu tempat.</p>
+                        <p className="topbar__subtitle">Daftar semua tugas yang harus kamu selesaikan.</p>
                     </div>
-                    <button onClick={() => setShowAdd(true)} style={{ display: "flex", alignItems: "center", gap: 8, background: "linear-gradient(135deg,#4338ca,#6366f1)", color: "white", border: "none", padding: "11px 22px", borderRadius: 14, fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 16px rgba(67,56,202,.35)", transition: "all .2s", marginTop: 4 }}
-                        onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(67,56,202,.45)"; }}
-                        onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 16px rgba(67,56,202,.35)"; }}>
-                        <Plus size={16} /> Tambah Tugas
-                    </button>
                 </div>
 
                 {/* ── STATS ── */}
@@ -416,7 +438,9 @@ export default function Tasks() {
 
                 {/* ── LIST ── */}
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    {filtered.length === 0
+                        {loading ? (
+                        <div style={{ textAlign: "center", padding: "40px 0", color: "#9ca3af" }}>Memuat tugas...</div>
+                    ) : filtered.length === 0
                         ? (
                             <div style={{ background: "white", borderRadius: 20, padding: "60px 20px", textAlign: "center", boxShadow: "0 1px 4px rgba(0,0,0,.06)" }}>
                                 <p style={{ fontSize: 42, marginBottom: 12 }}>📭</p>
@@ -428,7 +452,11 @@ export default function Tasks() {
                             <TaskCard key={task.id} task={task}
                                 onToggle={toggleTask}
                                 onDelete={deleteTask}
+
                                 onClick={t => navigate("/mahasiswa/detail", { state: { task: t } })}
+
+                                onClick={t => navigate("/mahasiswa/tasks/detail", { state: { taskId: t.id } })}
+
                             />
                         ))
                     }

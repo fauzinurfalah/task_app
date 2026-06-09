@@ -15,5 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->reportable(function (Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Exception: ' . get_class($e) . ' - ' . $e->getMessage());
+        });
     })->create();

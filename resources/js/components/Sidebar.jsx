@@ -57,6 +57,12 @@ export default function Sidebar({ role = "mahasiswa" }) {
     const links = NAV_LINKS[role] || NAV_LINKS.mahasiswa;
     const meta = ROLE_META[role] || ROLE_META.mahasiswa;
 
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const userName = user?.name || meta.name;
+    const userEmail = user?.email || meta.sub;
+    const userInitial = userName.charAt(0).toUpperCase();
+
     return (
         <div className="sidebar">
 
@@ -88,10 +94,10 @@ export default function Sidebar({ role = "mahasiswa" }) {
 
             {/* USER PROFILE */}
             <div className="sidebar__profile">
-                <div className="sidebar__avatar">{meta.avatar}</div>
+                <div className="sidebar__avatar">{userInitial}</div>
                 <div>
-                    <p className="sidebar__profile-name">{meta.name}</p>
-                    <p className="sidebar__profile-role">{meta.sub}</p>
+                    <p className="sidebar__profile-name">{userName}</p>
+                    <p className="sidebar__profile-role">{userEmail}</p>
                 </div>
             </div>
 

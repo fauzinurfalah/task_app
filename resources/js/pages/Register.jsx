@@ -8,6 +8,8 @@ const Register = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [role, setRole] = useState('mahasiswa');
+
     const navigate = useNavigate();
 
     const handleRegister = async (e) => {
@@ -19,7 +21,8 @@ const Register = () => {
             const response = await axios.post('/api/register', {
                 name,
                 email,
-                password
+                password,
+                role
             });
 
             // Optionally auto-login or just redirect to login page
@@ -82,6 +85,17 @@ const Register = () => {
                         />
                     </div>
 
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Role</label>
+                        <select
+                            value={role}
+                            onChange={e => setRole(e.target.value)}
+                            className="w-full px-3 py-2 mt-1 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        >
+                            <option value="mahasiswa">Mahasiswa</option>
+                            <option value="dosen">Dosen</option>
+                        </select>
+                    </div>
                     <button
                         type="submit"
                         disabled={loading}
