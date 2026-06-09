@@ -245,11 +245,6 @@ export default function DosenDashboard() {
 
                 </div>
 
-                {/* FAB */}
-                <button className="fab">
-                    <Plus size={24} />
-                </button>
-
             </main>
         </div>
     );

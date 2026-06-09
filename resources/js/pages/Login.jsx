@@ -90,7 +90,8 @@ export default function Auth() {
         setErrors({});
         setApiError("");
         setLoading(true);
-
+        setError('');
+        
         try {
             if(isLogin) {
                 const response = await axios.post("/api/login", {
@@ -122,6 +123,16 @@ export default function Auth() {
                 }, 1000);
                 return;
             }
+            const response = await axios.post('/api/login', {
+                email,
+                password
+            });
+            
+            // On success, maybe save the user data in localStorage or state
+            localStorage.setItem('user', JSON.stringify(response.data.user));
+            
+            // Redirect to dashboard
+            navigate('/dashboard');
         } catch (err) {
             const msg = err.response?.data?.message;
             const validationErrors = err.response?.data?.errors;

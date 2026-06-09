@@ -282,23 +282,15 @@ export default function MahasiswaCalendarPage() {
             <div className="app-wrapper">
                 <Sidebar role="mahasiswa" />
                 <main className="main-content cal-page">
-                    <div className="cal-header">
-                        <div className="cal-header__left">
-                            <div className="cal-header__title-row">
-                                <div className="cal-nav">
-                                    <button className="cal-nav__btn" onClick={prevMonth}><ChevronLeft size={16} /></button>
-                                    <h1 className="cal-header__month">{MONTH_NAMES[month]} {year}</h1>
-                                    <button className="cal-nav__btn" onClick={nextMonth}><ChevronRight size={16} /></button>
-                                </div>
-                            </div>
-                            <p className="cal-header__sub">{deadlines} deadline{deadlines !== 1 ? "s" : ""} and {exams} exam{exams !== 1 ? "s" : ""} this month</p>
-                        </div>
-                        <div className="cal-header__controls">
-                            <button className="btn-add-event"><Plus size={16} />Add Event</button>
-                        </div>
-                    </div>
                     <div className="cal-body">
                         <div className="cal-grid-wrapper">
+                            {/* ── Month nav inside the calendar box ── */}
+                            <div className="cal-grid-nav">
+                                <button className="cal-grid-nav__btn" onClick={prevMonth}><ChevronLeft size={16} /></button>
+                                <h2 className="cal-grid-nav__title">{MONTH_NAMES[month]} {year}</h2>
+                                <button className="cal-grid-nav__btn" onClick={nextMonth}><ChevronRight size={16} /></button>
+                                <button className="cal-grid-nav__add" title="Add Event"><Plus size={16} /></button>
+                            </div>
                             <div className="cal-day-headers">
                                 {DAY_NAMES.map(d => <div key={d} className="cal-day-header">{d}</div>)}
                             </div>

@@ -1,4 +1,5 @@
-import { Link, useLocation } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
     LayoutDashboard,
     ClipboardList,
@@ -9,6 +10,9 @@ import {
     GraduationCap,
     Star,
     Upload,
+    LogOut,
+    ChevronUp,
+    Settings,
 } from "lucide-react";
 
 // ─── Navigation links per role ────────────────────────────────────────────────
@@ -17,7 +21,6 @@ const NAV_LINKS = {
         { to: "/mahasiswa", icon: <LayoutDashboard size={18} />, label: "Dashboard" },
         { to: "/mahasiswa/tasks", icon: <ClipboardList size={18} />, label: "Tugas" },
         { to: "/mahasiswa/calendar", icon: <CalendarDays size={18} />, label: "Kalender" },
-        { to: "/mahasiswa/profile", icon: <User size={18} />, label: "Profil" },
     ],
     dosen: [
         { to: "/dosen", icon: <LayoutDashboard size={18} />, label: "Dashboard" },
@@ -26,7 +29,6 @@ const NAV_LINKS = {
         { to: "/dosen/grading", icon: <Star size={18} />, label: "Penilaian" },
         { to: "/dosen/students", icon: <Users size={18} />, label: "Mahasiswa" },
         { to: "/dosen/calendar", icon: <CalendarDays size={18} />, label: "Kalender" },
-        { to: "/dosen/profile", icon: <User size={18} />, label: "Profil" },
     ],
 };
 
@@ -39,6 +41,7 @@ const ROLE_META = {
         name: "Fauzi",
         sub: "Ilmu Komputer",
         avatar: "F",
+        profileTo: "/mahasiswa/profile",
     },
     dosen: {
         icon: <BookOpen size={14} />,
@@ -47,12 +50,14 @@ const ROLE_META = {
         name: "Dr. Budi",
         sub: "Teknik Informatika",
         avatar: "B",
+        profileTo: "/dosen/profile",
     },
 };
 
 
 export default function Sidebar({ role = "mahasiswa" }) {
     const location = useLocation();
+    const navigate = useNavigate();
     const path = location.pathname;
     const links = NAV_LINKS[role] || NAV_LINKS.mahasiswa;
     const meta = ROLE_META[role] || ROLE_META.mahasiswa;
@@ -62,6 +67,31 @@ export default function Sidebar({ role = "mahasiswa" }) {
     const userName = user?.name || meta.name;
     const userEmail = user?.email || meta.sub;
     const userInitial = userName.charAt(0).toUpperCase();
+    const [popupOpen, setPopupOpen] = useState(false);
+    const popupRef = useRef(null);
+    const triggerRef = useRef(null);
+
+    // Close popup when clicking outside
+    useEffect(() => {
+        function handleClickOutside(e) {
+            if (
+                popupRef.current &&
+                !popupRef.current.contains(e.target) &&
+                triggerRef.current &&
+                !triggerRef.current.contains(e.target)
+            ) {
+                setPopupOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const handleLogout = () => {
+        // Clear auth and redirect
+        localStorage.removeItem("token");
+        navigate("/login");
+    };
 
     return (
         <div className="sidebar">
@@ -78,7 +108,7 @@ export default function Sidebar({ role = "mahasiswa" }) {
             {/* NAV */}
             <nav className="sidebar__nav">
                 {links.map(({ to, icon, label }) => {
-                    const isActive = path === to || (to !== "/" && path.startsWith(to));
+                    const isActive = path === to || (to !== "/mahasiswa" && to !== "/dosen" && path.startsWith(to));
                     return (
                         <Link
                             key={to}
@@ -98,8 +128,52 @@ export default function Sidebar({ role = "mahasiswa" }) {
                 <div>
                     <p className="sidebar__profile-name">{userName}</p>
                     <p className="sidebar__profile-role">{userEmail}</p>
+            {/* PROFILE POPUP */}
+            {popupOpen && (
+                <div className="sidebar__profile-popup" ref={popupRef}>
+                    <div className="sidebar__profile-popup-header">
+                        <div className="sidebar__avatar sidebar__avatar--lg">{meta.avatar}</div>
+                        <div>
+                            <p className="sidebar__profile-name">{meta.name}</p>
+                            <p className="sidebar__profile-role">{meta.sub}</p>
+                        </div>
+                    </div>
+                    <div className="sidebar__profile-popup-divider" />
+                    <Link
+                        to={meta.profileTo}
+                        className="sidebar__profile-popup-item"
+                        onClick={() => setPopupOpen(false)}
+                    >
+                        <User size={15} />
+                        Lihat Profil
+                    </Link>
+                    <button
+                        className="sidebar__profile-popup-item sidebar__profile-popup-item--danger"
+                        onClick={handleLogout}
+                    >
+                        <LogOut size={15} />
+                        Keluar
+                    </button>
                 </div>
-            </div>
+            )}
+
+            {/* PROFILE TRIGGER BUTTON (bottom of sidebar) */}
+            <button
+                ref={triggerRef}
+                className={`sidebar__profile-btn${popupOpen ? " sidebar__profile-btn--active" : ""}`}
+                onClick={() => setPopupOpen((v) => !v)}
+                title="Profil"
+            >
+                <div className="sidebar__avatar">{meta.avatar}</div>
+                <div className="sidebar__profile-btn-info">
+                    <p className="sidebar__profile-name">{meta.name}</p>
+                    <p className="sidebar__profile-role">{meta.sub}</p>
+                </div>
+                <ChevronUp
+                    size={15}
+                    className={`sidebar__profile-chevron${popupOpen ? " sidebar__profile-chevron--up" : ""}`}
+                />
+            </button>
 
         </div>
     );
