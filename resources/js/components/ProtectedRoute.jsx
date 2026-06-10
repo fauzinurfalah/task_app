@@ -12,10 +12,12 @@ const ProtectedRoute = ({ children, allowedRole }) => {
 
     const user = JSON.parse(userStr);
 
+    const userRole = user.role || 'mahasiswa';
+
     // Mengecek apakah role user sesuai dengan role halaman yang diakses
-    if (allowedRole && user.role !== allowedRole) {
+    if (allowedRole && userRole !== allowedRole) {
         // Jika tidak sesuai, tendang ke dashboard mereka masing-masing
-        return <Navigate to={`/${user.role}`} replace />;
+        return <Navigate to={`/${userRole}`} replace />;
     }
 
     // Jika sudah login dan role sesuai, izinkan akses ke komponen tujuan

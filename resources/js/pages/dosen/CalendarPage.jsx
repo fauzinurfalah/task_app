@@ -1,5 +1,7 @@
 import Sidebar from "../../components/Sidebar";
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import axiosClient from "../../axiosClient";
 import {
     ChevronLeft, ChevronRight, Plus, CalendarCheck2,
     AlertTriangle, BookOpen, Users, Clock, Zap, Info,
@@ -14,11 +16,7 @@ function getFirstDayOfMonth(y, m) { return new Date(y, m, 1).getDay(); }
 function pad(n) { return String(n).padStart(2, "0"); }
 
 // Dosen calendar has different event types: quiz grading, class schedule, etc.
-function buildDosenEvents() {
-    return [];
-}
-
-const EVENTS = buildDosenEvents();
+// Removed static Dosen EVENTS
 
 const TYPE_CONFIG = {
     class:   { bg: "#eef2ff", color: "#4338ca", label: "KELAS"   },
@@ -159,10 +157,30 @@ function AgendaItem({ event, now }) {
 
 // ─── Dosen Calendar Page ──────────────────────────────────────────────────────
 export default function DosenCalendarPage() {
+    const navigate = useNavigate();
     const [now, setNow] = useState(new Date());
     const [current, setCurrent] = useState({ year: now.getFullYear(), month: now.getMonth() });
+    const [events, setEvents] = useState([]);
 
-    useEffect(() => { const t = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(t); }, []);
+    useEffect(() => {
+        const t = setInterval(() => setNow(new Date()), 1000);
+        
+        axiosClient.get('/dosen/tasks')
+            .then(({ data }) => {
+                const mapped = data.map(task => ({
+                    id: task.id_task,
+                    label: task.nama_tugas || "-",
+                    type: "grading",
+                    date: task.deadline ? task.deadline.substring(0, 10) : "",
+                    time: task.jam || "23:59",
+                    location: task.mata_kuliah?.nama_matkul || "Umum",
+                })).filter(e => e.date);
+                setEvents(mapped);
+            })
+            .catch(err => console.error(err));
+
+        return () => clearInterval(t);
+    }, []);
 
     const { year, month } = current;
     const daysInMonth = getDaysInMonth(year, month);
@@ -180,24 +198,24 @@ export default function DosenCalendarPage() {
     const goToday   = () => setCurrent({ year: now.getFullYear(), month: now.getMonth() });
 
     const eventMap = {};
-    EVENTS.forEach(ev => {
+    events.forEach(ev => {
         const d = parseInt(ev.date.split("-")[2]);
         const m = parseInt(ev.date.split("-")[1]) - 1;
         const y = parseInt(ev.date.split("-")[0]);
         if (y === year && m === month) { if (!eventMap[d]) eventMap[d] = []; eventMap[d].push(ev); }
     });
 
-    const classes  = EVENTS.filter(e => e.type === "class"   && parseInt(e.date.split("-")[1])-1 === month).length;
-    const gradings = EVENTS.filter(e => e.type === "grading" && parseInt(e.date.split("-")[1])-1 === month).length;
+    const classes  = events.filter(e => e.type === "class"   && parseInt(e.date.split("-")[1])-1 === month).length;
+    const gradings = events.filter(e => e.type === "grading" && parseInt(e.date.split("-")[1])-1 === month).length;
 
-    const upcomingEvent = EVENTS
+    const upcomingEvent = events
         .map(ev => { const [h, min] = ev.time.split(":").map(Number); const d = new Date(ev.date); d.setHours(h, min, 0, 0); return { ...ev, _ts: d }; })
         .filter(ev => ev._ts > now).sort((a, b) => a._ts - b._ts)[0];
 
     const todayStr  = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
     const dayLabel  = FULL_DAY_NAMES[now.getDay()].toUpperCase();
     const dateLabel = `${dayLabel}, ${now.getDate()} ${MONTH_NAMES[now.getMonth()].toUpperCase()}`;
-    const todayEvents = EVENTS.filter(e => e.date === todayStr);
+    const todayEvents = events.filter(e => e.date === todayStr);
 
     return (
         <>
@@ -240,15 +258,15 @@ export default function DosenCalendarPage() {
                             <p className="agenda-panel__date">{dateLabel}</p>
                             {upcomingEvent && <CountdownCard event={upcomingEvent} now={now} />}
                             <div className="agenda-list">
-                                {EVENTS.length > 0 ? (
+                                {events.length > 0 ? (
                                     todayEvents.length > 0
                                         ? todayEvents.map(ev => <AgendaItem key={ev.id} event={ev} now={now} />)
-                                        : EVENTS.slice(0, 3).map(ev => <AgendaItem key={ev.id} event={ev} now={now} />)
+                                        : events.slice(0, 3).map(ev => <AgendaItem key={ev.id} event={ev} now={now} />)
                                 ) : (
                                     <p style={{color:'#9ca3af', fontSize:13, padding:"10px 0"}}>Belum ada agenda.</p>
                                 )}
                             </div>
-                            <button className="btn-schedule"><CalendarCheck2 size={16} />Lihat Jadwal Lengkap</button>
+                            <button className="btn-schedule" onClick={() => navigate('/dosen/tasks')}><CalendarCheck2 size={16} />Lihat Jadwal Lengkap</button>
                         </div>
                     </div>
                 </main>

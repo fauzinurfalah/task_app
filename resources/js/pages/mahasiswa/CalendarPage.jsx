@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import Sidebar from "../../components/Sidebar";
+import axiosClient from "../../axiosClient";
 import {
     ChevronLeft,
     ChevronRight,
@@ -32,11 +34,7 @@ function pad(n) {
 }
 
 // ─── Sample Events ────────────────────────────────────────────────────────────
-function buildEvents() {
-    return [];
-}
-
-const EVENTS = buildEvents();
+// Removed static EVENTS
 
 const TYPE_CONFIG = {
     exam:       { bg: "#fee2e2", color: "#dc2626", label: "EXAM" },
@@ -223,11 +221,28 @@ function AgendaItem({ event, now }) {
 
 // ─── Mahasiswa Calendar Page ───────────────────────────────────────────────────
 export default function MahasiswaCalendarPage() {
+    const navigate = useNavigate();
     const [now, setNow] = useState(new Date());
     const [current, setCurrent] = useState({ year: now.getFullYear(), month: now.getMonth() });
+    const [events, setEvents] = useState([]);
 
     useEffect(() => {
         const timer = setInterval(() => setNow(new Date()), 1000);
+        
+        axiosClient.get('/mahasiswa/tasks')
+            .then(({ data }) => {
+                const mapped = data.map(item => ({
+                    id: item.task.id_task,
+                    label: item.task.nama_tugas || "-",
+                    type: "assignment",
+                    date: item.task.deadline ? item.task.deadline.substring(0, 10) : "",
+                    time: item.task.jam || "23:59",
+                    location: item.task.mata_kuliah?.nama_matkul || "Umum",
+                })).filter(e => e.date);
+                setEvents(mapped);
+            })
+            .catch(err => console.error(err));
+
         return () => clearInterval(timer);
     }, []);
 
@@ -247,17 +262,17 @@ export default function MahasiswaCalendarPage() {
     const goToday   = () => setCurrent({ year: now.getFullYear(), month: now.getMonth() });
 
     const eventMap = {};
-    EVENTS.forEach(ev => {
+    events.forEach(ev => {
         const d = parseInt(ev.date.split("-")[2]);
         const m = parseInt(ev.date.split("-")[1]) - 1;
         const y = parseInt(ev.date.split("-")[0]);
         if (y === year && m === month) { if (!eventMap[d]) eventMap[d] = []; eventMap[d].push(ev); }
     });
 
-    const exams     = EVENTS.filter(e => e.type === "exam"       && parseInt(e.date.split("-")[1])-1 === month).length;
-    const deadlines = EVENTS.filter(e => e.type === "assignment" && parseInt(e.date.split("-")[1])-1 === month).length;
+    const exams     = events.filter(e => e.type === "exam"       && parseInt(e.date.split("-")[1])-1 === month).length;
+    const deadlines = events.filter(e => e.type === "assignment" && parseInt(e.date.split("-")[1])-1 === month).length;
 
-    const upcomingEvent = EVENTS
+    const upcomingEvent = events
         .map(ev => { const [h, min] = ev.time.split(":").map(Number); const d = new Date(ev.date); d.setHours(h, min, 0, 0); return { ...ev, _ts: d }; })
         .filter(ev => ev._ts > now)
         .sort((a, b) => a._ts - b._ts)[0];
@@ -265,7 +280,7 @@ export default function MahasiswaCalendarPage() {
     const todayStr  = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
     const dayLabel  = FULL_DAY_NAMES[now.getDay()].toUpperCase();
     const dateLabel = `${dayLabel}, ${now.getDate()} ${MONTH_NAMES[now.getMonth()].toUpperCase()}`;
-    const todayEvents = EVENTS.filter(e => e.date === todayStr);
+    const todayEvents = events.filter(e => e.date === todayStr);
 
     return (
         <>
@@ -313,15 +328,15 @@ export default function MahasiswaCalendarPage() {
                             <p className="agenda-panel__date">{dateLabel}</p>
                             {upcomingEvent && <CountdownCard event={upcomingEvent} now={now} />}
                             <div className="agenda-list">
-                                {EVENTS.length > 0 ? (
+                                {events.length > 0 ? (
                                     todayEvents.length > 0
                                         ? todayEvents.map(ev => <AgendaItem key={ev.id} event={ev} now={now} />)
-                                        : EVENTS.slice(0, 3).map(ev => <AgendaItem key={ev.id} event={ev} now={now} />)
+                                        : events.slice(0, 3).map(ev => <AgendaItem key={ev.id} event={ev} now={now} />)
                                 ) : (
                                     <p style={{color:'#9ca3af', fontSize:13, padding:"10px 0"}}>Belum ada agenda.</p>
                                 )}
                             </div>
-                            <button className="btn-schedule"><CalendarCheck2 size={16} />View Full Schedule</button>
+                            <button className="btn-schedule" onClick={() => navigate('/mahasiswa/tasks')}><CalendarCheck2 size={16} />View Full Schedule</button>
                         </div>
                     </div>
                 </main>

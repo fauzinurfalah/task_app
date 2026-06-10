@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { QRCodeSVG } from "qrcode.react";
 import Sidebar from "../../components/Sidebar";
 import {
     Plus, Search, Filter, Clock3, Users, ChevronRight,
-    BookOpen, Code2, Calculator, Layers, MoreHorizontal,
+    BookOpen, Code2, Calculator, Layers, MoreHorizontal, QrCode, X
 } from "lucide-react";
 import axiosClient from "../../axiosClient";
 
@@ -21,7 +22,7 @@ const STATUS_MAP = {
 };
 
 // ─── Task Card ────────────────────────────────────────────────────────────────
-function TaskCard({ task }) {
+function TaskCard({ task, onShowQR }) {
     const pct = Math.round((task.submitted / task.total) * 100);
     const s   = STATUS_MAP[task.status];
     return (
@@ -33,6 +34,11 @@ function TaskCard({ task }) {
                 <div style={{ flex: 1, minWidth: 0 }}>
                     <p className="task-full-card__course">{task.course}</p>
                     <p className="task-full-card__title">{task.title}</p>
+                    {task.kode && (
+                        <p style={{ fontSize: 12, color: "#6b7280", marginTop: 4, fontWeight: 500 }}>
+                            Kode: <span style={{ color: "#111827", background: "#f3f4f6", padding: "2px 6px", borderRadius: 4 }}>{task.kode}</span>
+                        </p>
+                    )}
                 </div>
                 <span className={`status-badge ${s.cls}`}>{s.label}</span>
             </div>
@@ -58,6 +64,11 @@ function TaskCard({ task }) {
             </div>
 
             <div className="task-full-card__actions">
+                {task.kode && (
+                    <button onClick={() => onShowQR(task)} className="btn-outline" style={{ margin: 0, padding: "8px 12px", fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
+                        <QrCode size={13} /> QR
+                    </button>
+                )}
                 <Link to={`/dosen/tasks/detail?id=${task.id}`} className="btn-outline" style={{ margin: 0, width: "auto", padding: "8px 16px", fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
                     Lihat Detail <ChevronRight size={13} />
                 </Link>
@@ -74,6 +85,7 @@ export default function DosenManageTask() {
     const [search, setSearch] = useState("");
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [qrModal, setQrModal] = useState({ show: false, task: null });
 
     useEffect(() => {
         axiosClient.get('/dosen/tasks')
@@ -81,6 +93,7 @@ export default function DosenManageTask() {
                 // Map the data to the format TaskCard expects
                 const mappedTasks = data.map(t => ({
                     id: t.id_task,
+                    kode: t.kode_tugas,
                     title: t.nama_tugas,
                     course: t.nama_matkul || "Umum",
                     courseVariant: "indigo", // could be dynamic
@@ -151,12 +164,36 @@ export default function DosenManageTask() {
                     {loading ? (
                         <p style={{ color: "#9ca3af", textAlign: "center", padding: "40px 0", gridColumn: "1 / -1" }}>Memuat tugas...</p>
                     ) : filtered.length > 0
-                        ? filtered.map(t => <TaskCard key={t.id} task={t} />)
+                        ? filtered.map(t => <TaskCard key={t.id} task={t} onShowQR={(task) => setQrModal({ show: true, task })} />)
                         : <p style={{ color: "#9ca3af", textAlign: "center", padding: "40px 0", gridColumn: "1 / -1" }}>Tidak ada tugas ditemukan.</p>
                     }
                 </div>
 
             </main>
+
+            {/* QR Code Modal */}
+            {qrModal.show && qrModal.task && (
+                <div className="modal-backdrop">
+                    <div className="modal-content" style={{ maxWidth: 400, textAlign: 'center' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                            <h3 style={{ fontSize: 18, fontWeight: 600 }}>Kode Tugas</h3>
+                            <button onClick={() => setQrModal({ show: false, task: null })} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                                <X size={20} color="#6b7280" />
+                            </button>
+                        </div>
+                        <p style={{ marginBottom: 10, color: '#4b5563', fontSize: 14 }}>
+                            Silakan scan QR Code ini atau gunakan kode di bawah untuk mengambil tugas.
+                        </p>
+                        <div style={{ padding: 20, background: '#fff', borderRadius: 12, display: 'inline-block', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
+                            <QRCodeSVG value={qrModal.task.kode} size={200} />
+                        </div>
+                        <h2 style={{ marginTop: 20, fontSize: 32, letterSpacing: 4, color: '#111827' }}>
+                            {qrModal.task.kode}
+                        </h2>
+                        <p style={{ fontSize: 16, fontWeight: 600, marginTop: 10 }}>{qrModal.task.title}</p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

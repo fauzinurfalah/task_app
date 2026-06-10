@@ -1,10 +1,11 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Scanner } from "@yudiel/react-qr-scanner";
 import Sidebar from "../../components/Sidebar";
 import {
     Search, Plus, SlidersHorizontal, ChevronDown, X,
     AlertTriangle, BookOpen, Users, Clock, CheckCircle2,
-    Circle, MoreHorizontal, Flame, Calendar, Tag,
+    Circle, MoreHorizontal, Flame, Calendar, Tag, QrCode,
     ArrowUpRight, Trash2, Edit3, Target, Zap, TrendingUp,
 } from "lucide-react";
 import axiosClient from "../../axiosClient";
@@ -35,9 +36,11 @@ const PRI_CFG = {
 
 function daysLeft(due, time) {
     const d = new Date(`${due}T${time}`);
-    const diff = d - new Date();
-    if (diff < 0) return -1;
-    return Math.ceil(diff / 86400000);
+    const now = new Date();
+    if (d < now) return -1;
+    const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const dueDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    return Math.round((dueDate - todayDate) / 86400000);
 }
 function fmtDate(s) {
     return new Date(s).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
@@ -110,6 +113,46 @@ function AddModal({ onClose, onAdd }) {
                         + Tambah Tugas
                     </button>
                     <button onClick={onClose} style={{ padding: "13px 20px", borderRadius: 13, border: "1.5px solid #e5e7eb", background: "white", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", color: "#374151" }}>Batal</button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ─── Join Task Modal ───────────────────────────────────────────────────────────
+function JoinTaskModal({ onClose, onJoin }) {
+    const [kode, setKode] = useState("");
+    const [error, setError] = useState("");
+
+    const handleJoin = (code) => {
+        if (!code) return;
+        axiosClient.post('/mahasiswa/tasks/join', { kode_tugas: code })
+            .then(res => {
+                onJoin(res.data.task);
+                onClose();
+            })
+            .catch(err => {
+                setError(err.response?.data?.message || "Gagal bergabung dengan tugas");
+            });
+    };
+
+    return (
+        <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(4px)" }}>
+            <div onClick={e => e.stopPropagation()} style={{ background: "white", borderRadius: 24, width: "100%", maxWidth: 400, overflow: "hidden", boxShadow: "0 24px 64px rgba(0,0,0,.2)" }}>
+                <div style={{ padding: "20px 26px 16px", borderBottom: "1px solid #f3f4f6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <h3 style={{ fontSize: 18, fontWeight: 900, color: "#111827", margin: 0 }}>Gabung Tugas</h3>
+                    <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", padding: 4 }}><X size={18} /></button>
+                </div>
+                <div style={{ padding: "20px 26px" }}>
+                    <div style={{ marginBottom: 20, borderRadius: 12, overflow: 'hidden', border: '1px solid #e5e7eb', background: '#000' }}>
+                        <Scanner onScan={(result) => { if(result && result.length > 0) handleJoin(result[0].rawValue); }} />
+                    </div>
+                    {error && <p style={{ color: "#dc2626", fontSize: 12, marginBottom: 10 }}>{error}</p>}
+                    <label style={{ fontSize: 11, fontWeight: 700, color: "#374151", display: "block", marginBottom: 6, textTransform: "uppercase" }}>Atau Masukkan Kode Tugas</label>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                        <input value={kode} onChange={e => setKode(e.target.value.toUpperCase())} placeholder="KODE (cth: ABCDEF)" style={{ flex: 1, padding: "10px 14px", border: "1.5px solid #e5e7eb", borderRadius: 12, fontSize: 13, textTransform: "uppercase" }} />
+                        <button onClick={() => handleJoin(kode)} style={{ padding: "10px 16px", borderRadius: 12, border: "none", background: "#4338ca", color: "white", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>Gabung</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -251,6 +294,7 @@ export default function Tasks() {
     const [tab, setTab] = useState("all");
     const [showFilter, setShowFilter] = useState(false);
     const [showAdd, setShowAdd] = useState(false);
+    const [showJoin, setShowJoin] = useState(false);
     const [fType, setFType] = useState("all");
     const [fPri, setFPri] = useState("all");
     const [sort, setSort] = useState("due");
@@ -267,8 +311,9 @@ export default function Tasks() {
                     type: "assignment",
                     priority: item.task.prioritas || "medium",
                     status: item.status === "submitted" ? "completed" :
-                            item.status === "late" ? "completed" : "pending",
-                    due: item.task.deadline || "",
+                            item.status === "late" ? "completed" :
+                            item.status === "in_progress" ? "in_progress" : "pending",
+                    due: item.task.deadline ? item.task.deadline.substring(0, 10) : "",
                     dueTime: item.task.jam || "23:59",
                     progress: item.status === "submitted" || item.status === "late" ? 100 : 0,
                     tags: [],
@@ -281,9 +326,11 @@ export default function Tasks() {
     }, []);
 
     function toggleTask(id) {
-        setTasks(ts => ts.map(t => t.id === id
-            ? { ...t, status: t.status === "completed" ? "in_progress" : "completed", progress: t.status === "completed" ? (t.progress === 100 ? 65 : t.progress) : 100 }
-            : t));
+        const task = tasks.find(t => t.id === id);
+        if (task && task.status !== "completed") {
+            alert("Harap buka Detail Tugas dan unggah dokumen (Upload Tugas) untuk menyelesaikan tugas ini.");
+            return;
+        }
     }
     function deleteTask(id) { setTasks(ts => ts.filter(t => t.id !== id)); }
     function addTask(task) { setTasks(ts => [{ ...task }, ...ts]); }
@@ -329,10 +376,15 @@ export default function Tasks() {
                 `}</style>
 
                 {/* ── TOPBAR ── */}
-                <div className="topbar">
+                <div className="topbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
                         <h1 className="topbar__title">Tugas</h1>
                         <p className="topbar__subtitle">Daftar semua tugas yang harus kamu selesaikan.</p>
+                    </div>
+                    <div className="topbar__actions">
+                        <button onClick={() => setShowJoin(true)} className="btn-primary" style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 18px", fontSize: 13, textDecoration: "none", cursor: "pointer", border: "none", borderRadius: 12, background: "#4338ca", color: "white", fontWeight: 600 }}>
+                            <QrCode size={15} /> Gabung Tugas
+                        </button>
                     </div>
                 </div>
 
@@ -453,8 +505,6 @@ export default function Tasks() {
                                 onToggle={toggleTask}
                                 onDelete={deleteTask}
 
-                                onClick={t => navigate("/mahasiswa/detail", { state: { task: t } })}
-
                                 onClick={t => navigate("/mahasiswa/tasks/detail", { state: { taskId: t.id } })}
 
                             />
@@ -462,6 +512,14 @@ export default function Tasks() {
                     }
                 </div>
             </main>
+            {showJoin && (
+                <JoinTaskModal 
+                    onClose={() => setShowJoin(false)} 
+                    onJoin={(task) => {
+                        navigate("/mahasiswa/tasks/detail", { state: { taskId: task.id_task } });
+                    }} 
+                />
+            )}
         </div>
     );
 }

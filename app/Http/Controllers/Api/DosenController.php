@@ -65,6 +65,8 @@ class DosenController extends Controller
         ]);
 
         $data = $request->except('attachment');
+        
+        $data['kode_tugas'] = strtoupper(\Illuminate\Support\Str::random(6));
 
         if ($request->hasFile('attachment')) {
             $data['attachment'] = $request->file('attachment')->store('tasks', 'public');

@@ -7,7 +7,7 @@ import {
     Calendar, MapPin, Tag, CheckCircle2, Circle, Plus,
     Trash2, Edit3, Flame, Upload, Save, FileText,
     Link2, ChevronRight, BarChart2, Target, X,
-    MessageSquare, Paperclip, Check,
+    MessageSquare, Paperclip, Check, Download,
 } from "lucide-react";
 
 const DEFAULT_TASK = {
@@ -35,17 +35,8 @@ const STATUS_OPTS = [
     { key: "completed", label: "Selesai", icon: CheckCircle2, color: "#16a34a" },
 ];
 
-const INIT_SUBTASKS = [
-    { id: 1, label: "Riset dan referensi materi", done: true },
-    { id: 2, label: "Setup environment & dependencies", done: true },
-    { id: 3, label: "Implementasi core algorithm", done: false },
-    { id: 4, label: "Unit testing & debugging", done: false },
-    { id: 5, label: "Dokumentasi & laporan akhir", done: false },
-];
-const INIT_COMMENTS = [
-    { id: 1, author: "Fauzi", initials: "F", time: "2 jam lalu", text: "Sudah selesai setup environment dan mulai implementasi BFS dulu sebagai fondasi." },
-    { id: 2, author: "Fauzi", initials: "F", time: "Kemarin", text: "Referensi: CLRS Chapter 24 untuk detail Dijkstra." },
-];
+const INIT_SUBTASKS = [];
+const INIT_COMMENTS = [];
 const ATTACHMENTS = [
     { id: 1, name: "Algoritma_Reference.pdf", size: "2.4 MB", icon: "📄" },
     { id: 2, name: "graph_visualization.png", size: "1.1 MB", icon: "🖼️" },
@@ -54,9 +45,11 @@ const ATTACHMENTS = [
 
 function daysLeft(due, time) {
     const d = new Date(`${due}T${time}`);
-    const diff = d - new Date();
-    if (diff < 0) return -1;
-    return Math.ceil(diff / 86400000);
+    const now = new Date();
+    if (d < now) return -1;
+    const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const dueDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    return Math.round((dueDate - todayDate) / 86400000);
 }
 function fmtDate(s) {
     return new Date(s).toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
@@ -151,6 +144,7 @@ export default function DetailTask() {
     const navigate = useNavigate();
     const location = useLocation();
     const taskId = location.state?.taskId;
+    const user = JSON.parse(localStorage.getItem('user')) || { name: "Mahasiswa" };
 
     const [task, setTask] = useState(null);
     const [submission, setSubmission] = useState(null);
@@ -184,14 +178,14 @@ export default function DetailTask() {
                 courseCode: data.task.mata_kuliah?.kode_mk || "-",
                 description: data.task.deskripsi || "Tidak ada deskripsi",
                 attachment: data.task.attachment || null,
-                due: data.task.deadline,
+                due: data.task.deadline ? data.task.deadline.substring(0, 10) : "2026-12-31",
                 dueTime: data.task.jam || "23:59",
                 type: "assignment",
                 priority: data.task.prioritas || "medium",
-                progress: data.submission ? 100 : 0,
+                progress: (data.submission && (data.submission.status === 'submitted' || data.submission.status === 'late')) ? 100 : 0,
             });
             setSubmission(data.submission);
-            setStatus(data.submission ? (data.submission.status === "late" ? "late" : "completed") : "pending");
+            setStatus(data.submission ? (data.submission.status === "submitted" ? "completed" : data.submission.status) : "pending");
         } catch (error) {
             console.error("Error fetching task details:", error);
         } finally {
@@ -221,6 +215,19 @@ export default function DetailTask() {
         }
     };
 
+    const handleStatusChange = async (newStatus) => {
+        if (newStatus === "completed" && (!submission || !submission.file)) {
+            alert("Anda harus mengunggah dokumen (Upload Tugas) terlebih dahulu untuk menyelesaikan tugas ini.");
+            return;
+        }
+        setStatus(newStatus);
+        try {
+            await axiosClient.put(`/mahasiswa/tasks/${taskId}/status`, { status: newStatus });
+        } catch (error) {
+            console.error("Failed to update status", error);
+        }
+    };
+
     if (loading) return <div className="app-wrapper"><main className="main-content"><p>Loading...</p></main></div>;
     if (!task) return <div className="app-wrapper"><main className="main-content"><p>Task not found.</p></main></div>;
 
@@ -234,7 +241,7 @@ export default function DetailTask() {
     function toggleSub(id) { setSubs(p => p.map(s => s.id === id ? { ...s, done: !s.done } : s)); }
     function deleteSub(id) { setSubs(p => p.filter(s => s.id !== id)); }
     function addSub() { if (!newSub.trim()) return; setSubs(p => [...p, { id: Date.now(), label: newSub.trim(), done: false }]); setNewSub(""); }
-    function addCom() { if (!newCom.trim()) return; setComs(p => [...p, { id: Date.now(), author: "Fauzi", initials: "F", time: "Baru saja", text: newCom.trim() }]); setNewCom(""); }
+    function addCom() { if (!newCom.trim()) return; setComs(p => [...p, { id: Date.now(), author: user.name, initials: user.name.charAt(0).toUpperCase(), time: "Baru saja", text: newCom.trim() }]); setNewCom(""); }
 
     const TABS = [
         { key: "subtasks", label: "Sub-tugas", count: subtasks.length, icon: CheckCircle2 },
@@ -253,9 +260,8 @@ export default function DetailTask() {
                     .dt-btn-sec:hover { background:#f9fafb;border-color:#d1d5db; }
                 `}</style>
 
-                {/* Breadcrumb */}
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
-                    <button onClick={() => navigate("/tasks")}
+                    <button onClick={() => navigate("/mahasiswa/tasks")}
                         style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", fontSize: 14, fontWeight: 700, color: "#4338ca", cursor: "pointer", fontFamily: "inherit", padding: 0, transition: "gap .15s" }}
                         onMouseEnter={e => e.currentTarget.style.gap = "4px"}
                         onMouseLeave={e => e.currentTarget.style.gap = "8px"}>
@@ -265,9 +271,9 @@ export default function DetailTask() {
                     <span style={{ fontSize: 14, color: "#9ca3af" }}>Detail Tugas</span>
                 </div>
 
-                <div className="detail-grid">
+                <div className="detail-grid" style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 24, alignItems: "start" }}>
                     {/* ── LEFT ── */}
-                    <div className="detail-main">
+                    <div className="detail-main" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
                         {/* Hero */}
                         <div style={{ background: "white", borderRadius: 22, padding: "24px 28px", boxShadow: "0 1px 6px rgba(0,0,0,.06)", border: "1px solid #e5e7eb", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 24 }}>
@@ -314,7 +320,7 @@ export default function DetailTask() {
                                 </div>
                             </div>
                             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12, flexShrink: 0 }}>
-                                <ProgressRing pct={subPct || task.progress || 0} color={pc.color} />
+                                <ProgressRing pct={status === "completed" ? 100 : (subtasks.length > 0 ? subPct : (task.progress || 0))} color={pc.color} />
                                 <div style={{
                                     display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, padding: "7px 14px", borderRadius: 10,
                                     background: days < 0 ? "#fee2e2" : days === 0 ? "#fff7ed" : "#eef2ff",
@@ -351,16 +357,19 @@ export default function DetailTask() {
                         {/* Tab: Subtasks */}
                         {tab === "subtasks" && (
                             <div style={{ background: "white", borderRadius: 18, padding: "20px 24px", boxShadow: "0 1px 4px rgba(0,0,0,.06)", border: "1px solid #f3f4f6" }}>
-                                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, fontSize: 12, color: "#9ca3af", fontWeight: 600 }}>
-                                    <span>{doneSubs} dari {subtasks.length} selesai</span>
-                                    <div style={{ flex: 1, height: 5, background: "#e5e7eb", borderRadius: 99, overflow: "hidden" }}>
-                                        <div style={{ height: "100%", width: `${subPct}%`, background: "#4338ca", borderRadius: 99, transition: "width .4s ease" }} />
+                                {subtasks.length > 0 && (
+                                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, fontSize: 12, color: "#9ca3af", fontWeight: 600 }}>
+                                        <span>{doneSubs} dari {subtasks.length} selesai</span>
+                                        <div style={{ flex: 1, height: 5, background: "#e5e7eb", borderRadius: 99, overflow: "hidden" }}>
+                                            <div style={{ height: "100%", width: `${subPct}%`, background: "#4338ca", borderRadius: 99, transition: "width .4s ease" }} />
+                                        </div>
+                                        <span style={{ color: "#4338ca", fontWeight: 700 }}>{subPct}%</span>
                                     </div>
-                                    <span style={{ color: "#4338ca", fontWeight: 700 }}>{subPct}%</span>
-                                </div>
-                                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
+                                )}
+                                <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 16 }}>
+                                    {subtasks.length === 0 && <p style={{ fontSize: 13, color: "#9ca3af", textAlign: "center", margin: "10px 0" }}>Belum ada sub-tugas yang ditambahkan.</p>}
                                     {subtasks.map(sub => (
-                                        <div key={sub.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", background: "#f9fafb", borderRadius: 13, transition: "background .15s" }}
+                                        <div key={sub.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", background: "#f9fafb", borderRadius: 14, border: "1px solid #f3f4f6", transition: "background .15s" }}
                                             onMouseEnter={e => e.currentTarget.style.background = "#f3f4f6"}
                                             onMouseLeave={e => e.currentTarget.style.background = "#f9fafb"}>
                                             <button onClick={() => toggleSub(sub.id)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexShrink: 0, padding: 0, transition: "transform .15s" }}
@@ -400,6 +409,7 @@ export default function DetailTask() {
                         {tab === "comments" && (
                             <div style={{ background: "white", borderRadius: 18, padding: "20px 24px", boxShadow: "0 1px 4px rgba(0,0,0,.06)", border: "1px solid #f3f4f6" }}>
                                 <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 16 }}>
+                                    {comments.length === 0 && <p style={{ fontSize: 13, color: "#9ca3af", textAlign: "center", margin: "10px 0" }}>Belum ada catatan.</p>}
                                     {comments.map(c => (
                                         <div key={c.id} style={{ display: "flex", gap: 12 }}>
                                             <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg,#6366f1,#4338ca)", color: "white", fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{c.initials}</div>
@@ -414,7 +424,7 @@ export default function DetailTask() {
                                     ))}
                                 </div>
                                 <div style={{ display: "flex", gap: 12, alignItems: "flex-start", borderTop: "1px solid #f3f4f6", paddingTop: 16 }}>
-                                    <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg,#6366f1,#4338ca)", color: "white", fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>F</div>
+                                    <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg,#6366f1,#4338ca)", color: "white", fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{user.name.charAt(0).toUpperCase()}</div>
                                     <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
                                         <textarea value={newCom} onChange={e => setNewCom(e.target.value)} rows={2}
                                             placeholder="Tambah catatan atau komentar..."
@@ -438,7 +448,7 @@ export default function DetailTask() {
                                 <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 14 }}>
                                     {task.attachment ? (
                                         <>
-                                            {task.attachment.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
+                                            {(typeof task.attachment === 'string' && task.attachment.match(/\.(jpeg|jpg|gif|png|webp)$/i)) ? (
                                                 <div style={{ marginBottom: 12, borderRadius: 12, overflow: "hidden", border: "1px solid #f3f4f6" }}>
                                                     <img src={`http://127.0.0.1:8000/storage/${task.attachment}`} alt="Lampiran Dosen" style={{ width: "100%", height: "auto", display: "block" }} />
                                                 </div>
@@ -448,7 +458,7 @@ export default function DetailTask() {
                                                 onMouseLeave={e => e.currentTarget.style.background = "#f9fafb"}>
                                                 <span style={{ fontSize: 22, flexShrink: 0 }}>📄</span>
                                                 <div style={{ flex: 1 }}>
-                                                    <p style={{ fontSize: 13, fontWeight: 700, color: "#111827", margin: 0 }}>{task.attachment.split('/').pop()}</p>
+                                                    <p style={{ fontSize: 13, fontWeight: 700, color: "#111827", margin: 0 }}>{typeof task.attachment === 'string' ? task.attachment.split(/[/\\]/).pop() : "Lampiran"}</p>
                                                     <p style={{ fontSize: 11, color: "#9ca3af", margin: "2px 0 0" }}>Lampiran Dosen</p>
                                                 </div>
                                                 <div style={{ background: "none", border: "none", cursor: "pointer", color: "#4338ca", display: "flex", padding: 8, borderRadius: 8, transition: "background .15s" }}
@@ -467,7 +477,7 @@ export default function DetailTask() {
                     </div>
 
                     {/* ── RIGHT SIDEBAR ── */}
-                    <div className="detail-sidebar">
+                    <div className="detail-sidebar" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
                         {/* Status */}
                         <div style={{ background: "white", borderRadius: 18, padding: "18px 20px", boxShadow: "0 1px 4px rgba(0,0,0,.06)", border: "1px solid #f3f4f6" }}>
@@ -477,10 +487,12 @@ export default function DetailTask() {
                             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                                 {STATUS_OPTS.map(s => {
                                     const SI = s.icon; const active = status === s.key; return (
-                                        <button key={s.key} onClick={() => setStatus(s.key)}
-                                            style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 13, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", border: `1.5px solid ${active ? s.color + "40" : "#f3f4f6"}`, background: active ? `${s.color}0f` : "#f9fafb", color: active ? s.color : "#6b7280", transition: "all .15s" }}>
+                                        <button key={s.key} onClick={() => handleStatusChange(s.key)}
+                                            disabled={submission && (submission.status === "late" || submission.status === "submitted")}
+                                            style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 13, fontSize: 13, fontWeight: 600, cursor: (s.key === "completed" && (!submission || !submission.file)) ? "not-allowed" : "pointer", fontFamily: "inherit", border: `1.5px solid ${active ? s.color + "40" : "#f3f4f6"}`, background: active ? `${s.color}0f` : "#f9fafb", color: active ? s.color : "#6b7280", transition: "all .15s", opacity: (submission && (submission.status === "late" || submission.status === "submitted")) ? 0.6 : 1 }}>
                                             <SI size={16} color={active ? s.color : "#d1d5db"} />
                                             {s.label}
+                                            {(s.key === "completed" && (!submission || !submission.file)) && <span style={{ fontSize: 10, marginLeft: "auto", color: "#ef4444" }}>Upload dulu</span>}
                                             {active && <Check size={14} color={s.color} style={{ marginLeft: "auto" }} />}
                                         </button>
                                     );

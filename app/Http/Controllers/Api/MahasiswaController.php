@@ -45,8 +45,12 @@ class MahasiswaController extends Controller
     {
         $user = $request->user();
 
-        $tasks = Task::orderBy('created_at', 'desc')->get();
+        // Ambil semua submission user ini
         $submissions = Submission::where('user_id', $user->id)->get()->keyBy('task_id');
+        
+        // Ambil task yang HANYA sudah di-join oleh user
+        $taskIds = $submissions->keys();
+        $tasks = Task::whereIn('id_task', $taskIds)->orderBy('created_at', 'desc')->get();
 
         $result = $tasks->map(function ($task) use ($submissions) {
             $sub = $submissions->get($task->id_task);
@@ -57,7 +61,7 @@ class MahasiswaController extends Controller
             ];
         });
 
-        return response()->json($result);
+        return response()->json($result->values());
     }
 
     /**
@@ -110,6 +114,52 @@ class MahasiswaController extends Controller
         return response()->json([
             'message' => 'Tugas berhasil dikumpulkan',
             'submission' => $submission->load('task'),
+        ]);
+    }
+
+    /**
+     * Dapatkan tugas berdasarkan kode tugas (QR Code)
+     */
+    public function getTaskByCode(Request $request)
+    {
+        $request->validate(['kode_tugas' => 'required|string']);
+        $user = $request->user();
+        
+        $task = Task::where('kode_tugas', $request->kode_tugas)->first();
+
+        if (!$task) {
+            return response()->json(['message' => 'Kode Tugas tidak ditemukan'], 404);
+        }
+
+        // Daftarkan mahasiswa ke tugas ini jika belum ada
+        Submission::firstOrCreate(
+            ['task_id' => $task->id_task, 'user_id' => $user->id],
+            ['status' => 'pending']
+        );
+
+        return response()->json(['task' => $task]);
+    }
+
+    public function updateStatus(Request $request, $id)
+    {
+        $request->validate([
+            'status' => 'required|string'
+        ]);
+
+        $submission = Submission::where('task_id', $id)
+            ->where('user_id', $request->user()->id)
+            ->first();
+
+        if (!$submission) {
+            return response()->json(['message' => 'Tugas belum di-join.'], 404);
+        }
+
+        $submission->status = $request->status;
+        $submission->save();
+
+        return response()->json([
+            'message' => 'Status updated successfully',
+            'submission' => $submission
         ]);
     }
 }

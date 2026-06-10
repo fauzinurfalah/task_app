@@ -104,7 +104,7 @@ export default function MahasiswaDashboard() {
             .catch(err => console.error(err));
 
         axiosClient.get('/mahasiswa/tasks')
-            .then(({ data }) => setTasks(data.slice(0, 4)))
+            .then(({ data }) => setTasks(Array.isArray(data) ? data.slice(0, 4) : []))
             .catch(err => console.error(err))
             .finally(() => setLoading(false));
     }, []);
@@ -159,7 +159,6 @@ export default function MahasiswaDashboard() {
                         {/* Tugas Hari Ini */}
                         <div className="section-header">
                             <h2 className="section-header__title">Tugas Hari Ini</h2>
-                            <button className="btn-link">Lihat Semua</button>
                         </div>
 
                         <div className="task-list">

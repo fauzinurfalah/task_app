@@ -10,6 +10,7 @@ class Task extends Model
     protected $primaryKey = 'id_task';
 
     protected $fillable = [
+        'kode_tugas',
         'nama_tugas',
         'nama_matkul',
         'deskripsi',
