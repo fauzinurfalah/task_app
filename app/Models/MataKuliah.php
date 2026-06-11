@@ -17,7 +17,7 @@ class MataKuliah extends Model
 
     public function tasks()
     {
-        return $this->hasMany(Task::class, 'id_matkul', 'id_matkul');
+        return $this->hasMany(Task::class, 'nama_matkul', 'nama_matkul');
     }
 
     public function users()

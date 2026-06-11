@@ -104,7 +104,9 @@ export default function DosenSubmissions() {
                     <div className="filter-tabs">
                         <Filter size={14} color="#6b7280" />
                         <button className={`filter-tab ${taskFilter === "all" ? "filter-tab--active" : ""}`} onClick={() => setTaskFilter("all")}>Semua Tugas</button>
-                        {Object.entries(tasks).map(([id, name]) => (
+                        {Object.entries(tasks)
+                            .filter(([id]) => id == taskIdParam)
+                            .map(([id, name]) => (
                             <button key={id} className={`filter-tab ${taskFilter === parseInt(id) ? "filter-tab--active" : ""}`} onClick={() => setTaskFilter(parseInt(id))}>
                                 {name.split(" ").slice(0, 2).join(" ")}…
                             </button>
@@ -112,74 +114,81 @@ export default function DosenSubmissions() {
                     </div>
                 </div>
 
-                {/* TABLE */}
-                <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-                    <table className="data-table">
-                        <thead>
-                            <tr>
-                                <th>Mahasiswa</th>
-                                <th>Tugas</th>
-                                <th>Waktu Pengumpulan</th>
-                                <th>File</th>
-                                <th>Status</th>
-                                <th>Nilai</th>
-                                <th>Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {loading ? (
-                                <tr><td colSpan="7" style={{ textAlign: "center", padding: "40px" }}>Memuat data pengumpulan...</td></tr>
-                            ) : data.length === 0 ? (
-                                <tr><td colSpan="7" style={{ textAlign: "center", padding: "40px", color: "#9ca3af" }}>Tidak ada data pengumpulan.</td></tr>
-                            ) : data.map(s => (
-                                <tr key={s.id}>
-                                    <td>
-                                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                                            <div className="submission-item__avatar" style={{ width: 30, height: 30, fontSize: 12 }}>{s.name.charAt(0)}</div>
-                                            <div>
-                                                <p style={{ fontWeight: 700, fontSize: 13, margin: 0 }}>{s.name}</p>
-                                                <p style={{ fontSize: 11, color: "#9ca3af", margin: 0 }}>{s.nim}</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td><span style={{ fontSize: 12, color: "#374151" }}>{tasks[s.taskId] || `Task #${s.taskId}`}</span></td>
-                                    <td>
-                                        <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "#6b7280" }}>
-                                            <Clock size={12} />{s.submittedAt}
-                                        </div>
-                                    </td>
-                                    <td>
-                                        {s.file
-                                            ? <a href={`http://127.0.0.1:8000/storage/${s.filePath}?download=1`} download={s.file} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "#4338ca", cursor: "pointer", textDecoration: "none" }}><FileText size={12} />{s.file}</a>
-                                            : <span style={{ fontSize: 12, color: "#d1d5db" }}>—</span>
-                                        }
-                                    </td>
-                                    <td>
-                                        <span className={`status-badge ${s.status === "submitted" ? "status--green" : s.status === "late" ? "status--red" : "status--gray"}`}>
-                                            {s.status === "submitted" ? "Dikumpulkan" : s.status === "late" ? "Terlambat" : "Belum"}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        {s.grade !== null
-                                            ? <span style={{ fontWeight: 800, fontSize: 14, color: s.grade >= 80 ? "#16a34a" : s.grade >= 60 ? "#ea580c" : "#dc2626" }}>{s.grade}</span>
-                                            : <span style={{ fontSize: 12, color: "#d1d5db" }}>—</span>
-                                        }
-                                    </td>
-                                    <td>
-                                        {s.status !== "pending" && (
-                                            <Link to={`/dosen/grading?submission=${s.id}`} className="btn-outline" style={{ margin: 0, width: "auto", padding: "6px 12px", fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4 }}>
-                                                <CheckCircle2 size={11} /> Nilai
-                                            </Link>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    {data.length === 0 && (
-                        <p style={{ textAlign: "center", color: "#9ca3af", padding: "32px 0" }}>Tidak ada data pengumpulan.</p>
-                    )}
-                </div>
+                {loading ? (
+                    <div className="card" style={{ padding: "40px", textAlign: "center" }}>Memuat data pengumpulan...</div>
+                ) : data.length === 0 ? (
+                    <div className="card" style={{ padding: "40px", textAlign: "center", color: "#9ca3af" }}>Tidak ada data pengumpulan.</div>
+                ) : (
+                    Object.entries(tasks).map(([taskId, taskName]) => {
+                        const taskSubs = data.filter(s => s.taskId == taskId);
+                        if (taskSubs.length === 0) return null;
+                        
+                        return (
+                            <div key={taskId} className="card" style={{ padding: 0, overflow: "hidden", marginBottom: 24 }}>
+                                <div style={{ padding: "16px 20px", background: "#f9fafb", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                    <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#111827" }}>{taskName}</h3>
+                                    <span style={{ fontSize: 12, fontWeight: 600, color: "#6b7280", background: "#e5e7eb", padding: "4px 10px", borderRadius: 20 }}>{taskSubs.length} Pengumpulan</span>
+                                </div>
+                                <table className="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Mahasiswa</th>
+                                            <th>Waktu Pengumpulan</th>
+                                            <th>File</th>
+                                            <th>Status</th>
+                                            <th>Nilai</th>
+                                            <th>Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {taskSubs.map(s => (
+                                            <tr key={s.id}>
+                                                <td>
+                                                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                                        <div className="submission-item__avatar" style={{ width: 30, height: 30, fontSize: 12 }}>{s.name.charAt(0)}</div>
+                                                        <div>
+                                                            <p style={{ fontWeight: 700, fontSize: 13, margin: 0 }}>{s.name}</p>
+                                                            <p style={{ fontSize: 11, color: "#9ca3af", margin: 0 }}>{s.nim}</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "#6b7280" }}>
+                                                        <Clock size={12} />{s.submittedAt}
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    {s.file
+                                                        ? <a href={`http://127.0.0.1:8000/storage/${s.filePath}?download=1`} download={s.file} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "#4338ca", cursor: "pointer", textDecoration: "none" }}><FileText size={12} />{s.file}</a>
+                                                        : <span style={{ fontSize: 12, color: "#d1d5db" }}>—</span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <span className={`status-badge ${s.status === "submitted" ? "status--green" : s.status === "late" ? "status--red" : "status--gray"}`}>
+                                                        {s.status === "submitted" ? "Dikumpulkan" : s.status === "late" ? "Terlambat" : "Belum"}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    {s.grade !== null
+                                                        ? <span style={{ fontWeight: 800, fontSize: 14, color: s.grade >= 80 ? "#16a34a" : s.grade >= 60 ? "#ea580c" : "#dc2626" }}>{s.grade}</span>
+                                                        : <span style={{ fontSize: 12, color: "#d1d5db" }}>—</span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    {s.status !== "pending" && (
+                                                        <Link to={`/dosen/grading?submission=${s.id}`} className="btn-outline" style={{ margin: 0, width: "auto", padding: "6px 12px", fontSize: 11, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                                                            <CheckCircle2 size={11} /> Nilai
+                                                        </Link>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        );
+                    })
+                )}
 
             </main>
         </div>

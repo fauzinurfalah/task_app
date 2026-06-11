@@ -32,6 +32,8 @@ function GradingRow({ submission, index, onGradeSaved }) {
 
     const gradeColor = finalGrade >= 80 ? "#16a34a" : finalGrade >= 60 ? "#ea580c" : finalGrade ? "#dc2626" : "#9ca3af";
 
+    const isAlreadyGraded = submission.grade !== null;
+
     return (
         <div className={`grading-row ${saved ? "grading-row--saved" : ""}`}>
             {/* Summary row */}
@@ -79,6 +81,7 @@ function GradingRow({ submission, index, onGradeSaved }) {
                             setFinalGrade(Math.min(100, Math.max(0, Number(e.target.value))));
                             setSaved(false);
                         }}
+                        disabled={isAlreadyGraded}
                     />
 
                     {/* Feedback */}
@@ -89,14 +92,17 @@ function GradingRow({ submission, index, onGradeSaved }) {
                         placeholder="Tulis catatan untuk mahasiswa ini..."
                         value={feedback}
                         onChange={e => { setFeedback(e.target.value); setSaved(false); }}
+                        disabled={isAlreadyGraded}
                     />
 
                     {/* Save */}
-                    <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
-                        <button className="btn-primary" style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 18px", fontSize: 13 }} onClick={handleSave} disabled={loading}>
-                            <Save size={14} /> {loading ? "Menyimpan..." : "Simpan Nilai"}
-                        </button>
-                    </div>
+                    {!isAlreadyGraded && (
+                        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
+                            <button className="btn-primary" style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 18px", fontSize: 13 }} onClick={handleSave} disabled={loading}>
+                                <Save size={14} /> {loading ? "Menyimpan..." : "Simpan Nilai"}
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
@@ -153,7 +159,9 @@ export default function DosenGrading() {
                 <div className="topbar" style={{ marginTop: 8 }}>
                     <div>
                         <h1 className="topbar__title">Penilaian Tugas</h1>
-                        <p className="topbar__subtitle">{taskName} — {submissions.length} pengumpulan</p>
+                        <p className="topbar__subtitle">
+                            {submissions.some(s => s.task_id !== submissions[0]?.task_id) ? "Berbagai Tugas" : taskName} — {submissions.length} pengumpulan
+                        </p>
                     </div>
                     <div style={{ display: "flex", gap: 12 }}>
                         <div className="mini-stat" style={{ textAlign: "center", background: "white", borderRadius: 12, padding: "8px 20px" }}>
@@ -168,12 +176,30 @@ export default function DosenGrading() {
                 </div>
 
                 {/* GRADING CARDS */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
                     {submissions.length === 0 ? (
                         <p style={{ textAlign: "center", color: "#6b7280", marginTop: 40 }}>Tidak ada pengumpulan ditemukan.</p>
                     ) : (
-                        submissions.map((s, i) => (
-                            <GradingRow key={s.id} submission={s} index={i} onGradeSaved={fetchSubmissions} />
+                        Object.entries(
+                            submissions.reduce((acc, s) => {
+                                const tId = s.task_id || "unknown";
+                                const tName = s.task?.nama_tugas || `Task #${tId}`;
+                                if (!acc[tId]) acc[tId] = { name: tName, subs: [] };
+                                acc[tId].subs.push(s);
+                                return acc;
+                            }, {})
+                        ).map(([tId, group]) => (
+                            <div key={tId} className="card" style={{ padding: 0, overflow: "hidden" }}>
+                                <div style={{ padding: "16px 20px", background: "#f9fafb", borderBottom: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                    <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#111827" }}>{group.name}</h3>
+                                    <span style={{ fontSize: 12, fontWeight: 600, color: "#6b7280", background: "#e5e7eb", padding: "4px 10px", borderRadius: 20 }}>{group.subs.length} Pengumpulan</span>
+                                </div>
+                                <div style={{ display: "flex", flexDirection: "column" }}>
+                                    {group.subs.map((s, i) => (
+                                        <GradingRow key={s.id} submission={s} index={i} onGradeSaved={fetchSubmissions} />
+                                    ))}
+                                </div>
+                            </div>
                         ))
                     )}
                 </div>

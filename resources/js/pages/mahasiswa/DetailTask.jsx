@@ -202,9 +202,7 @@ export default function DetailTask() {
 
         try {
             setSub2(true); // Loading state
-            await axiosClient.post(`/mahasiswa/tasks/${taskId}/submit`, formData, {
-                headers: { "Content-Type": "multipart/form-data" },
-            });
+            await axiosClient.post(`/mahasiswa/tasks/${taskId}/submit`, formData);
             await fetchData(); // Refresh data
         } catch (error) {
             console.error("Upload failed", error);
@@ -539,9 +537,6 @@ export default function DetailTask() {
                                 {submitted ? <><span className="spinner"></span>Mengunggah...</> : 
                                  (status === "completed" || status === "late") ? <><Check size={15} />Tugas Terkirim</> : 
                                  <><Upload size={15} />Submit Tugas</>}
-                            </button>
-                            <button className="dt-btn-sec" onClick={() => navigate("/mahasiswa/tasks")}>
-                                <ArrowLeft size={14} />Kembali ke Tugas
                             </button>
                         </div>
                     </div>

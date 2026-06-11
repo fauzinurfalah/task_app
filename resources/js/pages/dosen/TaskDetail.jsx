@@ -90,13 +90,9 @@ export default function DosenTaskDetail() {
             // For Laravel PUT requests via FormData, we need to spoof the method
             if (taskId) {
                 formData.append("_method", "PUT");
-                await axiosClient.post(`/dosen/tasks/${taskId}`, formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' }
-                });
+                await axiosClient.post(`/dosen/tasks/${taskId}`, formData);
             } else {
-                await axiosClient.post(`/dosen/tasks`, formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' }
-                });
+                await axiosClient.post(`/dosen/tasks`, formData);
             }
             navigate("/dosen/tasks");
         } catch (err) {

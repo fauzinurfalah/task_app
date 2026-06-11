@@ -100,7 +100,7 @@ export default function DosenManageTask() {
                     deadline: t.deadline,
                     time: t.jam,
                     submitted: t.submitted_count || 0,
-                    total: 42, // Would ideally come from course total_students
+                    total: t.total_students || 1,
                     status: t.status || "active",
                     desc: t.deskripsi
                 }));

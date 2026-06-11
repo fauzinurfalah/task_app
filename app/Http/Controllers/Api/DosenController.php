@@ -34,6 +34,8 @@ class DosenController extends Controller
      */
     public function tasks(Request $request)
     {
+        $totalMahasiswa = User::where('role', 'mahasiswa')->count();
+
         $tasks = Task::withCount([
                 'submissions',
                 'submissions as submitted_count' => function ($q) {
@@ -42,6 +44,10 @@ class DosenController extends Controller
             ])
             ->orderBy('created_at', 'desc')
             ->get();
+
+        $tasks->each(function ($task) use ($totalMahasiswa) {
+            $task->total_students = $totalMahasiswa;
+        });
 
         return response()->json($tasks);
     }
@@ -96,6 +102,8 @@ class DosenController extends Controller
                 },
             ])
             ->findOrFail($id);
+
+        $task->total_students = User::where('role', 'mahasiswa')->count();
 
         return response()->json($task);
     }
@@ -180,6 +188,13 @@ class DosenController extends Controller
         ]);
 
         $submission = Submission::findOrFail($id);
+
+        if ($submission->grade !== null) {
+            return response()->json([
+                'message' => 'Tugas sudah dinilai dan tidak dapat diubah.'
+            ], 403);
+        }
+
         $submission->update([
             'grade' => $request->grade,
             'feedback' => $request->feedback,
