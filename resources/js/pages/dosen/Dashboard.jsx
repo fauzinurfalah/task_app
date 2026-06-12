@@ -1,61 +1,98 @@
 import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import Sidebar from "../../components/Sidebar";
-import { Search, Bell, Plus, Clock3, Users, BookOpen, CheckCircle2, BarChart2, TrendingUp } from "lucide-react";
+import NotificationBell from "../../components/NotificationBell";
+import { Clock3, Users, BookOpen, CheckCircle2, TrendingUp, ChevronRight, FileText, Target, Sparkles, BookMarked, ArrowRight } from "lucide-react";
 import axiosClient from "../../axiosClient";
 
+// ─── Circular Progress ────────────────────────────────────────────────────────
+function CircleProgress({ percent = 0 }) {
+    const radius = 54;
+    const stroke = 12;
+    const normalizedRadius = radius - stroke / 2;
+    const circumference = 2 * Math.PI * normalizedRadius;
+    const strokeDashoffset = circumference - (percent / 100) * circumference;
+    return (
+        <div style={{ position: "relative", width: 130, height: 130, flexShrink: 0, filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.15))" }}>
+            <svg width="130" height="130" viewBox="0 0 130 130">
+                <circle cx="65" cy="65" r={normalizedRadius} fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth={stroke} />
+                <circle cx="65" cy="65" r={normalizedRadius} fill="none" stroke="#fff" strokeWidth={stroke}
+                    strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset}
+                    transform="rotate(-90 65 65)" style={{ transition: "stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1)" }} />
+            </svg>
+            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ fontSize: 28, fontWeight: 900, color: "#fff", lineHeight: 1, letterSpacing: "-1px" }}>{percent}%</span>
+            </div>
+        </div>
+    );
+}
+
 // ─── Stat Card ────────────────────────────────────────────────────────────────
-function StatCard({ icon, iconVariant, label, value, trend }) {
-    return (
-        <div className="stat-card">
-            <div className={`stat-card__icon icon-bg--${iconVariant}`}>{icon}</div>
-            <div className="stat-card__body">
-                <p className="stat-card__label">{label}</p>
-                <p className="stat-card__value">{value}</p>
-            </div>
-            {trend && <span className="stat-card__trend">{trend}</span>}
-        </div>
-    );
-}
+const STAT_VARIANTS = {
+    indigo: { bg: "#eef2ff", text: "#4338ca", border: "#4f46e5", icon: "#4f46e5" },
+    green:  { bg: "#ecfdf5", text: "#059669", border: "#10b981", icon: "#10b981" },
+    orange: { bg: "#fff7ed", text: "#c2410c", border: "#f97316", icon: "#ea580c" },
+    purple: { bg: "#f5f3ff", text: "#6d28d9", border: "#8b5cf6", icon: "#7c3aed" },
+};
 
-// ─── Student Submission Item ───────────────────────────────────────────────────
-function SubmissionItem({ name, nim, task, status, time }) {
-    const statusMap = {
-        submitted:  { label: "Dikumpulkan", cls: "status--green"  },
-        late:       { label: "Terlambat",   cls: "status--red"    },
-        pending:    { label: "Belum",        cls: "status--gray"   },
-    };
-    const s = statusMap[status] || statusMap.pending;
+function StatCard({ icon, iconVariant, label, value }) {
+    const vc = STAT_VARIANTS[iconVariant] || STAT_VARIANTS.indigo;
     return (
-        <div className="submission-item">
-            <div className="submission-item__avatar">{name.charAt(0)}</div>
-            <div className="submission-item__body">
-                <p className="submission-item__name">{name} <span className="submission-item__nim">({nim})</span></p>
-                <p className="submission-item__task">{task}</p>
+        <div style={{
+            background: "white", borderRadius: 24, padding: "24px",
+            border: "1px solid #f1f5f9", boxShadow: "0 4px 20px rgba(0,0,0,0.03)",
+            display: "flex", flexDirection: "column", gap: 16, transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+            position: "relative", overflow: "hidden"
+        }}
+            onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 12px 30px rgba(0,0,0,0.08)"; e.currentTarget.style.borderColor = vc.border + "40"; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.03)"; e.currentTarget.style.borderColor = "#f1f5f9"; }}>
+            <div style={{ position: "absolute", top: -20, right: -20, width: 100, height: 100, borderRadius: "50%", background: vc.bg, opacity: 0.5, pointerEvents: "none" }} />
+            <div style={{ width: 52, height: 52, borderRadius: 16, background: vc.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, position: "relative", zIndex: 1 }}>
+                {icon}
             </div>
-            <div className="submission-item__right">
-                <span className={`status-badge ${s.cls}`}>{s.label}</span>
-                <p className="submission-item__time">{time}</p>
+            <div style={{ position: "relative", zIndex: 1 }}>
+                <p style={{ fontSize: 36, fontWeight: 900, color: "#0f172a", margin: "0 0 4px", lineHeight: 1, letterSpacing: "-1.5px" }}>{value}</p>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "#64748b", margin: 0, textTransform: "uppercase", letterSpacing: "0.5px" }}>{label}</p>
             </div>
         </div>
     );
 }
 
-// ─── Task Management Item (for dosen) ─────────────────────────────────────────
-function TaskManageItem({ title, course, deadline, submitted, total, badgeVariant }) {
-    const pct = Math.round((submitted / total) * 100);
+// ─── Task Management Card (for dosen) ─────────────────────────────────────────
+function TaskManageCard({ id, title, course, deadline, submitted, total, onClick }) {
+    const pct = total ? Math.round((submitted / total) * 100) : 0;
     return (
-        <div className="task-manage-item">
-            <div className="task-manage-item__left">
-                <span className={`task-item__badge badge--${badgeVariant}`}>{course}</span>
-                <p className="task-manage-item__title">{title}</p>
-                <p className="task-manage-item__deadline"><Clock3 size={12} /> {deadline}</p>
-            </div>
-            <div className="task-manage-item__right">
-                <p className="task-manage-item__count">{submitted}/{total} <span>mahasiswa</span></p>
-                <div className="progress-bar" style={{ width: "80px" }}>
-                    <div className="progress-bar__fill" style={{ width: `${pct}%` }} />
+        <div onClick={onClick} style={{
+            background: "white", borderRadius: 20, padding: "24px", border: "1px solid #e2e8f0",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.02)", cursor: "pointer", transition: "all 0.2s ease-out",
+            display: "flex", flexDirection: "column", gap: "16px", position: "relative", overflow: "hidden"
+        }}
+             onMouseEnter={e => { e.currentTarget.style.borderColor = "#ea580c"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(234,88,12,0.12)"; e.currentTarget.style.transform = "scale(1.01)"; }}
+             onMouseLeave={e => { e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.02)"; e.currentTarget.style.transform = "scale(1)"; }}>
+
+            <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: pct === 100 ? "#10b981" : "#ea580c", borderRadius: "20px 0 0 20px" }} />
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", flex: 1, paddingRight: "16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        {course && <span style={{ padding: "4px 10px", background: "#fff7ed", color: "#ea580c", borderRadius: "8px", fontSize: "11px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.5px" }}>{course}</span>}
+                        <span style={{ fontSize: "11px", fontWeight: "700", color: "#64748b", background: "#f8fafc", padding: "4px 10px", borderRadius: "8px", border: "1px solid #e2e8f0" }}><Clock3 size={11} style={{ display: "inline", marginBottom: -2 }}/> {deadline}</span>
+                    </div>
+                    <h3 style={{ fontSize: "18px", fontWeight: "800", color: "#0f172a", margin: 0, lineHeight: 1.3, letterSpacing: "-0.3px" }}>{title}</h3>
                 </div>
-                <p className="task-manage-item__pct">{pct}%</p>
+                <div style={{ width: "42px", height: "42px", borderRadius: "12px", background: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", color: "#64748b", flexShrink: 0, border: "1px solid #e2e8f0" }}>
+                    <BookMarked size={18} />
+                </div>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "auto" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "13px", fontWeight: "700" }}>
+                    <span style={{ color: "#64748b" }}>Progress Pengumpulan</span>
+                    <span style={{ color: pct === 100 ? "#059669" : "#ea580c" }}>{submitted}/{total} ({pct}%)</span>
+                </div>
+                <div style={{ height: "8px", background: "#f1f5f9", borderRadius: "99px", overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${pct}%`, background: pct === 100 ? "#10b981" : "linear-gradient(90deg, #f97316, #f59e0b)", transition: "width 0.5s ease", borderRadius: "99px" }} />
+                </div>
             </div>
         </div>
     );
@@ -63,6 +100,7 @@ function TaskManageItem({ title, course, deadline, submitted, total, badgeVarian
 
 // ─── Dosen Dashboard ─────────────────────────────────────────────────────────
 export default function DosenDashboard() {
+    const navigate = useNavigate();
     const [stats, setStats] = useState({
         total_mahasiswa: 0,
         tugas_aktif: 0,
@@ -70,30 +108,8 @@ export default function DosenDashboard() {
         rata_rata_nilai: 0,
     });
     const [tasks, setTasks] = useState([]);
-    const [matkuls, setMatkuls] = useState([]);
-    const [showMatkulModal, setShowMatkulModal] = useState(false);
-    const [matkulForm, setMatkulForm] = useState({ kode_mk: "", nama_matkul: "" });
-    const [matkulLoading, setMatkulLoading] = useState(false);
+    const [needsGrading, setNeedsGrading] = useState(0);
     const [user, setUser] = useState({});
-
-    async function handleAddMatkul(e) {
-        e.preventDefault();
-        setMatkulLoading(true);
-        try {
-            const res = await axiosClient.post('/dosen/mata-kuliah', {
-                ...matkulForm,
-                nama_dosen: user.name,
-            });
-            setMatkuls([...matkuls, res.data.mata_kuliah]);
-            setShowMatkulModal(false);
-            setMatkulForm({ kode_mk: "", nama_matkul: "" });
-        } catch (err) {
-            console.error(err);
-            alert("Gagal menambahkan kelas. Pastikan kode mata kuliah unik.");
-        } finally {
-            setMatkulLoading(false);
-        }
-    }
 
     useEffect(() => {
         const u = JSON.parse(localStorage.getItem('user') || '{}');
@@ -105,163 +121,125 @@ export default function DosenDashboard() {
 
         axiosClient.get('/dosen/tasks')
             .then(({ data }) => {
-                // Filter active tasks
-                setTasks(data.filter(t => t.status === 'active').slice(0, 3));
+                setTasks(data.filter(t => t.status === 'active').slice(0, 4));
             })
             .catch(err => console.error(err));
-
-        axiosClient.get('/dosen/mata-kuliah')
-            .then(({ data }) => setMatkuls(data))
+            
+        axiosClient.get('/dosen/submissions')
+            .then(({ data }) => {
+                const unGraded = data.filter(s => (s.status === 'submitted' || s.status === 'late') && s.grade === null).length;
+                setNeedsGrading(unGraded);
+            })
             .catch(err => console.error(err));
     }, []);
 
+    const completionRate = stats.tugas_aktif > 0 ? Math.round((stats.sudah_dinilai / (stats.tugas_aktif * stats.total_mahasiswa)) * 100) || 0 : 100;
+
     return (
         <div className="app-wrapper">
-
-            {/* SIDEBAR */}
             <Sidebar role="dosen" />
 
-            {/* MAIN */}
-            <main className="main-content">
-
+            <main className="main-content" style={{ background: "#f8fafc", padding: "40px 48px" }}>
+                
                 {/* TOPBAR */}
-                <div className="topbar">
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 36 }}>
                     <div>
-                        <h1 className="topbar__title">Selamat Datang, {user.name}</h1>
-                        <p className="topbar__subtitle">
-                            Belum ada pengumpulan baru hari ini.
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                            <span style={{ padding: "4px 12px", background: "#fff7ed", color: "#ea580c", borderRadius: 20, fontSize: 12, fontWeight: 800, letterSpacing: "1px", textTransform: "uppercase" }}>Dosen Dashboard</span>
+                        </div>
+                        <h1 style={{ fontSize: 32, fontWeight: 900, color: "#0f172a", margin: 0, letterSpacing: "-1px" }}>
+                            Halo, {user.name ? user.name.split(" ")[0] : "Dosen"}! 👋
+                        </h1>
+                    </div>
+                    <div style={{ display: "flex", gap: 12 }}>
+                        <NotificationBell />
+                    </div>
+                </div>
+
+                {/* HERO CARD */}
+                <div style={{
+                    position: "relative", overflow: "hidden", borderRadius: 32, padding: "40px",
+                    background: "linear-gradient(135deg, #ea580c 0%, #f59e0b 100%)",
+                    display: "flex", alignItems: "center", justifyContent: "space-between", gap: 40,
+                    boxShadow: "0 20px 40px rgba(234,88,12,0.2)", marginBottom: 36, color: "white"
+                }}>
+                    {/* Decorative Background Elements */}
+                    <div style={{ position: "absolute", top: -50, right: -50, width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 70%)" }} />
+                    <div style={{ position: "absolute", bottom: -100, left: 100, width: 250, height: 250, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%)" }} />
+                    
+                    <div style={{ position: "relative", zIndex: 1, flex: 1 }}>
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 16px", background: "rgba(255,255,255,0.15)", borderRadius: 20, backdropFilter: "blur(10px)", fontSize: 13, fontWeight: 700, marginBottom: 20, border: "1px solid rgba(255,255,255,0.2)" }}>
+                            <Sparkles size={14} /> Status Penilaian
+                        </div>
+                        <h2 style={{ fontSize: 36, fontWeight: 900, margin: "0 0 16px", letterSpacing: "-1px", lineHeight: 1.2 }}>
+                            {needsGrading > 0 ? `Ada ${needsGrading} Tugas Perlu Dinilai!` : "Semua Tugas Sudah Dinilai! 🎉"}
+                        </h2>
+                        <p style={{ fontSize: 16, color: "rgba(255,255,255,0.9)", margin: "0 0 28px", lineHeight: 1.6, maxWidth: 500, fontWeight: 500 }}>
+                            Pantau dan kelola kelas Anda dengan mudah. Saat ini rata-rata nilai kelas adalah <strong>{stats.rata_rata_nilai}</strong> dari {stats.total_mahasiswa} mahasiswa aktif.
                         </p>
+                        <Link to="/dosen/submissions" style={{
+                            display: "inline-flex", alignItems: "center", gap: 10,
+                            background: "white", color: "#ea580c", borderRadius: 16,
+                            padding: "14px 28px", fontSize: 15, fontWeight: 800,
+                            textDecoration: "none", transition: "all 0.2s",
+                            boxShadow: "0 8px 20px rgba(0,0,0,0.1)"
+                        }} onMouseEnter={e => e.currentTarget.style.transform = "translateY(-2px)"} onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}>
+                            Mulai Menilai <ArrowRight size={18} />
+                        </Link>
                     </div>
-                    <div className="topbar__actions">
-                        <button className="icon-btn"><Search size={17} /></button>
-                        <button className="icon-btn"><Bell size={17} /></button>
+                    
+                    <div style={{ position: "relative", zIndex: 1, background: "rgba(255,255,255,0.1)", padding: 24, borderRadius: "50%", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.2)" }}>
+                        <CircleProgress percent={completionRate} />
                     </div>
                 </div>
 
-                <div className="stats-row">
-                    <StatCard
-                        icon={<Users size={20} color="#4338ca" />}
-                        iconVariant="indigo"
-                        label="Total Mahasiswa"
-                        value={stats.total_mahasiswa}
-                    />
-                    <StatCard
-                        icon={<BookOpen size={20} color="#ea580c" />}
-                        iconVariant="orange"
-                        label="Tugas Aktif"
-                        value={stats.tugas_aktif}
-                    />
-                    <StatCard
-                        icon={<CheckCircle2 size={20} color="#16a34a" />}
-                        iconVariant="green"
-                        label="Sudah Dinilai"
-                        value={stats.sudah_dinilai}
-                    />
-                    <StatCard
-                        icon={<TrendingUp size={20} color="#7c3aed" />}
-                        iconVariant="purple"
-                        label="Rata-rata Nilai"
-                        value={stats.rata_rata_nilai}
-                    />
+                {/* STAT CARDS */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 24, marginBottom: 36 }}>
+                    <StatCard icon={<Users size={24} color={STAT_VARIANTS.indigo.icon} />} iconVariant="indigo" label="Mahasiswa" value={stats.total_mahasiswa} />
+                    <StatCard icon={<BookOpen size={24} color={STAT_VARIANTS.orange.icon} />} iconVariant="orange" label="Tugas Aktif" value={stats.tugas_aktif} />
+                    <StatCard icon={<CheckCircle2 size={24} color={STAT_VARIANTS.green.icon} />} iconVariant="green" label="Tugas Dinilai" value={stats.sudah_dinilai} />
+                    <StatCard icon={<TrendingUp size={24} color={STAT_VARIANTS.purple.icon} />} iconVariant="purple" label="Rata-rata Kelas" value={stats.rata_rata_nilai} />
                 </div>
 
-                {/* GRID */}
-                <div className="dashboard-grid">
-
-                    {/* ── LEFT ── */}
-                    <div className="col-left">
-
-                        {/* Tugas yang Dikelola */}
-                        <div className="section-header">
-                            <h2 className="section-header__title">Tugas yang Dikelola</h2>
-                            <button className="btn-link">Kelola Semua</button>
-                        </div>
-                        <div className="task-list">
-                            {tasks.map(t => (
-                                <TaskManageItem
-                                    key={t.id_task}
-                                    title={t.nama_tugas}
-                                    course={t.mata_kuliah?.nama_matkul}
-                                    deadline={`${t.deadline} ${t.jam}`}
-                                    submitted={t.submitted_count || 0}
-                                    total={stats.total_mahasiswa}
-                                    badgeVariant="indigo"
-                                />
-                            ))}
-                            {tasks.length === 0 && <p style={{color:'#9ca3af', padding:'20px 0'}}>Belum ada tugas aktif.</p>}
-                        </div>
-
-                        {/* Statistik Kelas */}
-                        <div style={{ marginTop: "24px" }}>
-                            <div className="section-header" style={{ marginBottom: "14px" }}>
-                                <h2 className="section-header__title">Ringkasan Kelas</h2>
-                                <button className="btn-link" onClick={() => setShowMatkulModal(true)}>+ Tambah Kelas</button>
-                            </div>
-                            <div className="course-grid">
-                                {matkuls.length > 0 ? matkuls.map(m => (
-                                    <div className="course-card" key={m.id_matkul || m.kode_mk}>
-                                        <div className="course-card__header">
-                                            <div className="course-card__icon icon-bg--indigo">
-                                                <BookOpen size={20} color="#4338ca" />
-                                            </div>
-                                            <div>
-                                                <p className="course-card__title">{m.nama_matkul}</p>
-                                                <p className="course-card__sub">{m.kode_mk}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )) : <p style={{color:'#9ca3af', padding:'10px 0'}}>Belum ada kelas aktif.</p>}
-                            </div>
-                        </div>
+                {/* TUGAS AKTIF GRID */}
+                <div>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+                        <h2 style={{ fontSize: 22, fontWeight: 900, color: "#0f172a", margin: 0, letterSpacing: "-0.5px", display: "flex", alignItems: "center", gap: 10 }}>
+                            <div style={{ width: 12, height: 12, borderRadius: "50%", background: "#ea580c" }} />
+                            Tugas Aktif
+                        </h2>
+                        <Link to="/dosen/tasks" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 14, fontWeight: 700, color: "#ea580c", textDecoration: "none", padding: "8px 16px", background: "#fff7ed", borderRadius: 12, transition: "background 0.2s" }} onMouseEnter={e => e.currentTarget.style.background = "#ffedd5"} onMouseLeave={e => e.currentTarget.style.background = "#fff7ed"}>
+                            Kelola Semua <ChevronRight size={16} />
+                        </Link>
                     </div>
-
-                    {/* ── RIGHT ── */}
-                    <div className="col-right">
-
-                        {/* Pengumpulan Terbaru */}
-                        <div className="card">
-                            <h2 className="card__title">Pengumpulan Terbaru</h2>
-                            <div className="deadline-list" style={{ gap: "8px" }}>
-                                <p style={{color:'#9ca3af', fontSize:13}}>Belum ada pengumpulan.</p>
+                    
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 24 }}>
+                        {tasks.map(t => (
+                            <TaskManageCard
+                                key={t.id_task}
+                                id={t.id_task}
+                                title={t.nama_tugas}
+                                course={t.mata_kuliah?.nama_matkul}
+                                deadline={`${t.deadline ? t.deadline.substring(0, 10) : ""} ${t.jam || ""}`}
+                                submitted={t.submitted_count || 0}
+                                total={stats.total_mahasiswa}
+                                onClick={() => navigate('/dosen/tasks/detail', { state: { taskId: t.id_task } })}
+                            />
+                        ))}
+                        {tasks.length === 0 && (
+                            <div style={{ gridColumn: "1 / -1", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 20px", background: "white", borderRadius: 24, border: "2px dashed #e2e8f0", textAlign: "center" }}>
+                                <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+                                    <BookOpen size={32} color="#94a3b8" />
+                                </div>
+                                <h3 style={{ fontSize: "18px", fontWeight: "800", color: "#0f172a", margin: "0 0 8px 0" }}>Belum Ada Tugas Aktif</h3>
+                                <p style={{ fontSize: "14px", color: "#64748b", margin: 0 }}>Anda belum membuat tugas baru atau semua tugas telah ditutup.</p>
+                                <Link to="/dosen/tasks" style={{ display: "inline-block", marginTop: "20px", padding: "12px 24px", background: "#ea580c", color: "white", borderRadius: "12px", fontSize: "14px", fontWeight: "800", textDecoration: "none" }}>Buat Tugas Baru</Link>
                             </div>
-                            <button className="btn-outline">Lihat Semua Pengumpulan</button>
-                        </div>
-
-                        {/* Aktivitas Dosen */}
-                        <div className="card">
-                            <h2 className="card__title card__title--lg">Aktivitas Terakhir</h2>
-                            <div className="activity-timeline">
-                                <p style={{color:'#9ca3af', fontSize:13}}>Belum ada aktivitas.</p>
-                            </div>
-                        </div>
+                        )}
                     </div>
-
                 </div>
 
             </main>
-
-            {/* MODAL TAMBAH KELAS */}
-            {showMatkulModal && (
-                <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
-                    <div style={{ background: "white", padding: 24, borderRadius: 16, width: 400, animation: "pop-in 0.3s ease" }}>
-                        <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 16 }}>Tambah Kelas Baru</h2>
-                        <form onSubmit={handleAddMatkul} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                            <div>
-                                <label style={{ fontSize: 13, fontWeight: 700 }}>Kode Mata Kuliah</label>
-                                <input required type="text" value={matkulForm.kode_mk} onChange={e => setMatkulForm({...matkulForm, kode_mk: e.target.value})} style={{ width: "100%", padding: 10, borderRadius: 8, border: "1px solid #e5e7eb", marginTop: 4, outline: "none", fontFamily: "inherit" }} placeholder="e.g. IF101" />
-                            </div>
-                            <div>
-                                <label style={{ fontSize: 13, fontWeight: 700 }}>Nama Mata Kuliah</label>
-                                <input required type="text" value={matkulForm.nama_matkul} onChange={e => setMatkulForm({...matkulForm, nama_matkul: e.target.value})} style={{ width: "100%", padding: 10, borderRadius: 8, border: "1px solid #e5e7eb", marginTop: 4, outline: "none", fontFamily: "inherit" }} placeholder="e.g. Pemrograman Web" />
-                            </div>
-                            <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
-                                <button type="button" onClick={() => setShowMatkulModal(false)} style={{ flex: 1, padding: 10, borderRadius: 8, border: "1px solid #e5e7eb", background: "white", cursor: "pointer", fontWeight: 700, fontFamily: "inherit" }}>Batal</button>
-                                <button type="submit" disabled={matkulLoading} style={{ flex: 1, padding: 10, borderRadius: 8, border: "none", background: "#4338ca", color: "white", cursor: "pointer", fontWeight: 700, fontFamily: "inherit", opacity: matkulLoading ? 0.7 : 1 }}>{matkulLoading ? "Menyimpan..." : "Simpan"}</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

@@ -19,6 +19,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ─── Dosen ────────────────────────────────────────────────────────────────
     Route::prefix('dosen')->group(function () {
         Route::get('/dashboard-stats', [DosenController::class, 'dashboardStats']);
+        Route::get('/notifications', [DosenController::class, 'notifications']);
         Route::get('/tasks', [DosenController::class, 'tasks']);
         Route::post('/tasks', [DosenController::class, 'storeTask']);
         Route::get('/tasks/{id}', [DosenController::class, 'showTask']);

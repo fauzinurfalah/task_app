@@ -24,6 +24,7 @@ class ErrorBoundary extends React.Component {
 import MahasiswaDashboard from "./pages/mahasiswa/Dashboard";
 import MahasiswaTasks from "./pages/mahasiswa/Tasks";
 import MahasiswaDetailTask from "./pages/mahasiswa/DetailTask";
+import MahasiswaPersonalDetail from "./pages/mahasiswa/PersonalTaskDetail";
 import MahasiswaCalendar from "./pages/mahasiswa/CalendarPage";
 import MahasiswaProfile from "./pages/mahasiswa/Profile";
 
@@ -48,6 +49,7 @@ function App() {
             <Route path="/mahasiswa" element={<ProtectedRoute allowedRole="mahasiswa"><MahasiswaDashboard /></ProtectedRoute>} />
             <Route path="/mahasiswa/tasks" element={<ProtectedRoute allowedRole="mahasiswa"><MahasiswaTasks /></ProtectedRoute>} />
             <Route path="/mahasiswa/tasks/detail" element={<ProtectedRoute allowedRole="mahasiswa"><MahasiswaDetailTask /></ProtectedRoute>} />
+            <Route path="/mahasiswa/tasks/mandiri" element={<ProtectedRoute allowedRole="mahasiswa"><MahasiswaPersonalDetail /></ProtectedRoute>} />
             <Route path="/mahasiswa/calendar" element={<ProtectedRoute allowedRole="mahasiswa"><MahasiswaCalendar /></ProtectedRoute>} />
             <Route path="/mahasiswa/profile" element={<ProtectedRoute allowedRole="mahasiswa"><MahasiswaProfile /></ProtectedRoute>} />
 

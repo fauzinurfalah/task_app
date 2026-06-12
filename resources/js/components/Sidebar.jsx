@@ -32,28 +32,11 @@ const NAV_LINKS = {
     ],
 };
 
-// ─── Role badge styling ───────────────────────────────────────────────────────
-const ROLE_META = {
-    mahasiswa: {
-        icon: <GraduationCap size={14} />,
-        label: "Mahasiswa",
-        cls: "role-badge--mahasiswa",
-        name: "Fauzi",
-        sub: "Ilmu Komputer",
-        avatar: "F",
-        profileTo: "/mahasiswa/profile",
-    },
-    dosen: {
-        icon: <BookOpen size={14} />,
-        label: "Dosen",
-        cls: "role-badge--dosen",
-        name: "Dr. Budi",
-        sub: "Teknik Informatika",
-        avatar: "B",
-        profileTo: "/dosen/profile",
-    },
-};
 
+const ROLE_META = {
+    mahasiswa: { name: "Mahasiswa", sub: "Mahasiswa", profileTo: "/mahasiswa/profile" },
+    dosen: { name: "Dosen", sub: "Dosen", profileTo: "/dosen/profile" },
+};
 
 export default function Sidebar({ role = "mahasiswa" }) {
     const location = useLocation();
@@ -97,13 +80,9 @@ export default function Sidebar({ role = "mahasiswa" }) {
         <div className="sidebar">
 
             {/* LOGO */}
-            <h1 className="sidebar__logo">TaskApp</h1>
-
-            {/* ROLE BADGE */}
-            <div className={`role-badge ${meta.cls}`}>
-                {meta.icon}
-                <span>{meta.label}</span>
-            </div>
+            <h1 style={{ fontSize: 22, fontWeight: 900, color: "#4338ca", letterSpacing: "-0.8px", margin: "0 0 16px 4px", padding: 0 }}>
+                TaskApp
+            </h1>
 
             {/* NAV */}
             <nav className="sidebar__nav">

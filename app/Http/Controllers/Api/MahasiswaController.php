@@ -96,17 +96,25 @@ class MahasiswaController extends Controller
         $task = Task::findOrFail($id);
 
         // Simpan file
-        $path = $request->file('file')->store('submissions', 'public');
+        $file = $request->file('file');
+        $filename = time() . '_' . $file->getClientOriginalName();
+        $path = $file->storeAs('submissions', $filename, 'public');
 
         // Cek apakah sudah melewati deadline
         $deadlineDateTime = $task->deadline->format('Y-m-d') . ' ' . $task->jam;
         $isLate = now()->gt($deadlineDateTime);
 
+        if ($isLate) {
+            return response()->json([
+                'message' => 'Gagal mengumpulkan: Tugas ini sudah melewati batas waktu (deadline).'
+            ], 403);
+        }
+
         $submission = Submission::updateOrCreate(
             ['task_id' => $id, 'user_id' => $user->id],
             [
                 'file' => $path,
-                'status' => $isLate ? 'late' : 'submitted',
+                'status' => 'submitted',
                 'submitted_at' => now(),
             ]
         );
@@ -154,7 +162,24 @@ class MahasiswaController extends Controller
             return response()->json(['message' => 'Tugas belum di-join.'], 404);
         }
 
-        $submission->status = $request->status;
+        $newStatus = $request->status;
+
+        if (in_array($newStatus, ['completed', 'submitted'])) {
+            if (!$submission->file) {
+                return response()->json(['message' => 'Tugas tidak dapat ditandai selesai karena belum ada file yang diunggah.'], 403);
+            }
+            
+            $newStatus = 'submitted';
+            $task = \App\Models\Task::find($id);
+            if ($task) {
+                $deadlineDateTime = $task->deadline->format('Y-m-d') . ' ' . $task->jam;
+                if (now()->gt($deadlineDateTime)) {
+                    $newStatus = 'late';
+                }
+            }
+        }
+
+        $submission->status = $newStatus;
         $submission->save();
 
         return response()->json([
