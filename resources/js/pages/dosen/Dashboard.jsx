@@ -2,30 +2,8 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Sidebar from "../../components/Sidebar";
 import NotificationBell from "../../components/NotificationBell";
-import { Clock3, Users, BookOpen, CheckCircle2, TrendingUp, ChevronRight, FileText, Target, Sparkles, BookMarked, ArrowRight } from "lucide-react";
+import { Clock3, Users, BookOpen, CheckCircle2, TrendingUp, ChevronRight, BookMarked } from "lucide-react";
 import axiosClient from "../../axiosClient";
-
-// ─── Circular Progress ────────────────────────────────────────────────────────
-function CircleProgress({ percent = 0 }) {
-    const radius = 54;
-    const stroke = 12;
-    const normalizedRadius = radius - stroke / 2;
-    const circumference = 2 * Math.PI * normalizedRadius;
-    const strokeDashoffset = circumference - (percent / 100) * circumference;
-    return (
-        <div style={{ position: "relative", width: 130, height: 130, flexShrink: 0, filter: "drop-shadow(0 8px 16px rgba(0,0,0,0.15))" }}>
-            <svg width="130" height="130" viewBox="0 0 130 130">
-                <circle cx="65" cy="65" r={normalizedRadius} fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth={stroke} />
-                <circle cx="65" cy="65" r={normalizedRadius} fill="none" stroke="#fff" strokeWidth={stroke}
-                    strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={strokeDashoffset}
-                    transform="rotate(-90 65 65)" style={{ transition: "stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1)" }} />
-            </svg>
-            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-                <span style={{ fontSize: 28, fontWeight: 900, color: "#fff", lineHeight: 1, letterSpacing: "-1px" }}>{percent}%</span>
-            </div>
-        </div>
-    );
-}
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 const STAT_VARIANTS = {
@@ -108,7 +86,6 @@ export default function DosenDashboard() {
         rata_rata_nilai: 0,
     });
     const [tasks, setTasks] = useState([]);
-    const [needsGrading, setNeedsGrading] = useState(0);
     const [user, setUser] = useState({});
 
     useEffect(() => {
@@ -124,16 +101,7 @@ export default function DosenDashboard() {
                 setTasks(data.filter(t => t.status === 'active').slice(0, 4));
             })
             .catch(err => console.error(err));
-            
-        axiosClient.get('/dosen/submissions')
-            .then(({ data }) => {
-                const unGraded = data.filter(s => (s.status === 'submitted' || s.status === 'late') && s.grade === null).length;
-                setNeedsGrading(unGraded);
-            })
-            .catch(err => console.error(err));
     }, []);
-
-    const completionRate = stats.tugas_aktif > 0 ? Math.round((stats.sudah_dinilai / (stats.tugas_aktif * stats.total_mahasiswa)) * 100) || 0 : 100;
 
     return (
         <div className="app-wrapper">
@@ -153,43 +121,6 @@ export default function DosenDashboard() {
                     </div>
                     <div style={{ display: "flex", gap: 12 }}>
                         <NotificationBell />
-                    </div>
-                </div>
-
-                {/* HERO CARD */}
-                <div style={{
-                    position: "relative", overflow: "hidden", borderRadius: 32, padding: "40px",
-                    background: "linear-gradient(135deg, #ea580c 0%, #f59e0b 100%)",
-                    display: "flex", alignItems: "center", justifyContent: "space-between", gap: 40,
-                    boxShadow: "0 20px 40px rgba(234,88,12,0.2)", marginBottom: 36, color: "white"
-                }}>
-                    {/* Decorative Background Elements */}
-                    <div style={{ position: "absolute", top: -50, right: -50, width: 300, height: 300, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 70%)" }} />
-                    <div style={{ position: "absolute", bottom: -100, left: 100, width: 250, height: 250, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%)" }} />
-                    
-                    <div style={{ position: "relative", zIndex: 1, flex: 1 }}>
-                        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 16px", background: "rgba(255,255,255,0.15)", borderRadius: 20, backdropFilter: "blur(10px)", fontSize: 13, fontWeight: 700, marginBottom: 20, border: "1px solid rgba(255,255,255,0.2)" }}>
-                            <Sparkles size={14} /> Status Penilaian
-                        </div>
-                        <h2 style={{ fontSize: 36, fontWeight: 900, margin: "0 0 16px", letterSpacing: "-1px", lineHeight: 1.2 }}>
-                            {needsGrading > 0 ? `Ada ${needsGrading} Tugas Perlu Dinilai!` : "Semua Tugas Sudah Dinilai! 🎉"}
-                        </h2>
-                        <p style={{ fontSize: 16, color: "rgba(255,255,255,0.9)", margin: "0 0 28px", lineHeight: 1.6, maxWidth: 500, fontWeight: 500 }}>
-                            Pantau dan kelola kelas Anda dengan mudah. Saat ini rata-rata nilai kelas adalah <strong>{stats.rata_rata_nilai}</strong> dari {stats.total_mahasiswa} mahasiswa aktif.
-                        </p>
-                        <Link to="/dosen/submissions" style={{
-                            display: "inline-flex", alignItems: "center", gap: 10,
-                            background: "white", color: "#ea580c", borderRadius: 16,
-                            padding: "14px 28px", fontSize: 15, fontWeight: 800,
-                            textDecoration: "none", transition: "all 0.2s",
-                            boxShadow: "0 8px 20px rgba(0,0,0,0.1)"
-                        }} onMouseEnter={e => e.currentTarget.style.transform = "translateY(-2px)"} onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}>
-                            Mulai Menilai <ArrowRight size={18} />
-                        </Link>
-                    </div>
-                    
-                    <div style={{ position: "relative", zIndex: 1, background: "rgba(255,255,255,0.1)", padding: 24, borderRadius: "50%", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.2)" }}>
-                        <CircleProgress percent={completionRate} />
                     </div>
                 </div>
 

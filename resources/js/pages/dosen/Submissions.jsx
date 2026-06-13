@@ -28,7 +28,7 @@ export default function DosenSubmissions() {
                     file: s.file ? s.file.split('/').pop() : null,
                     filePath: s.file,
                     status: s.status,
-                    grade: s.points,
+                    grade: s.grade,
                     submittedAt: new Date(s.created_at).toLocaleString('id-ID'),
                 }));
                 setSubmissions(mapped);
@@ -162,15 +162,15 @@ export default function DosenSubmissions() {
                                 </div>
                                 
                                 <div style={{ overflowX: "auto" }}>
-                                    <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                                    <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", tableLayout: "fixed" }}>
                                         <thead>
                                             <tr style={{ background: "white", borderBottom: "2px solid #f1f5f9" }}>
-                                                <th style={{ padding: "16px 32px", fontSize: 12, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>Mahasiswa</th>
-                                                <th style={{ padding: "16px 20px", fontSize: 12, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>Waktu Pengumpulan</th>
-                                                <th style={{ padding: "16px 20px", fontSize: 12, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>File</th>
-                                                <th style={{ padding: "16px 20px", fontSize: 12, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>Status</th>
-                                                <th style={{ padding: "16px 20px", fontSize: 12, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>Nilai</th>
-                                                <th style={{ padding: "16px 32px", fontSize: 12, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>Aksi</th>
+                                                <th style={{ width: "25%", padding: "16px 32px", fontSize: 12, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>Mahasiswa</th>
+                                                <th style={{ width: "20%", padding: "16px 20px", fontSize: 12, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>Waktu Pengumpulan</th>
+                                                <th style={{ width: "20%", padding: "16px 20px", fontSize: 12, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>File</th>
+                                                <th style={{ width: "12%", padding: "16px 20px", fontSize: 12, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>Status</th>
+                                                <th style={{ width: "8%", padding: "16px 20px", fontSize: 12, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>Nilai</th>
+                                                <th style={{ width: "15%", padding: "16px 32px", fontSize: 12, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>Aksi</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -216,9 +216,15 @@ export default function DosenSubmissions() {
                                                     </td>
                                                     <td style={{ padding: "20px 32px" }}>
                                                         {s.status !== "pending" && (
-                                                            <Link to={`/dosen/grading?submission=${s.id}`} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 12, background: "white", border: "1.5px solid #e2e8f0", color: "#0f172a", fontSize: 13, fontWeight: 800, textDecoration: "none", transition: "all 0.2s" }} onMouseEnter={e => { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.borderColor = "#cbd5e1"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.02)"; }} onMouseLeave={e => { e.currentTarget.style.background = "white"; e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.boxShadow = "none"; }}>
-                                                                <CheckCircle2 size={14} color="#4f46e5" /> Nilai
-                                                            </Link>
+                                                            s.grade !== null ? (
+                                                                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 12, background: "#f1f5f9", border: "1.5px solid #e2e8f0", color: "#94a3b8", fontSize: 13, fontWeight: 800, cursor: "not-allowed" }}>
+                                                                    <CheckCircle2 size={14} color="#94a3b8" /> Dinilai
+                                                                </span>
+                                                            ) : (
+                                                                <Link to={`/dosen/grading?submission=${s.id}`} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 12, background: "white", border: "1.5px solid #e2e8f0", color: "#0f172a", fontSize: 13, fontWeight: 800, textDecoration: "none", transition: "all 0.2s" }} onMouseEnter={e => { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.borderColor = "#cbd5e1"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.02)"; }} onMouseLeave={e => { e.currentTarget.style.background = "white"; e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.boxShadow = "none"; }}>
+                                                                    <CheckCircle2 size={14} color="#4f46e5" /> Nilai
+                                                                </Link>
+                                                            )
                                                         )}
                                                     </td>
                                                 </tr>
