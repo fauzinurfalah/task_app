@@ -18,6 +18,7 @@ export default function DosenTaskDetail() {
     const [title, setTitle]       = useState("");
     const [desc, setDesc]         = useState("");
     const [deadline, setDeadline] = useState("");
+    const [jam, setJam]           = useState("23:59");
     const [namaMatkul, setNamaMatkul] = useState("");
     const [attachment, setAttachment] = useState(null);
     const [points, setPoints]     = useState(100);
@@ -37,6 +38,7 @@ export default function DosenTaskDetail() {
                 setTitle(data.nama_tugas);
                 setDesc(data.deskripsi || "");
                 setDeadline(data.deadline ? data.deadline.substring(0, 10) : "");
+                setJam(data.jam || "23:59");
                 setNamaMatkul(data.nama_matkul || "");
             })
             .catch(err => console.error(err))
@@ -62,6 +64,7 @@ export default function DosenTaskDetail() {
             formData.append("nama_matkul", namaMatkul || "Umum");
             formData.append("deskripsi", desc);
             formData.append("deadline", deadline || "2026-12-31");
+            formData.append("jam", jam || "23:59");
             if (attachment) {
                 formData.append("attachment", attachment);
             }
@@ -153,7 +156,12 @@ export default function DosenTaskDetail() {
                                 <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 14, fontWeight: 700, color: "#475569" }}>
                                     <div style={{ width: 32, height: 32, borderRadius: 8, background: "white", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid #e2e8f0" }}><Clock3 size={16} color="#ea580c" /></div>
                                     {editing
-                                        ? <input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} style={{ ...inputStyles, padding: "8px 12px" }} />
+                                        ? (
+                                            <div style={{ display: "flex", gap: 8 }}>
+                                                <input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} style={{ ...inputStyles, padding: "8px 12px", width: "auto" }} />
+                                                <input type="time" value={jam} onChange={e => setJam(e.target.value)} style={{ ...inputStyles, padding: "8px 12px", width: "auto" }} />
+                                            </div>
+                                        )
                                         : <span>{task.deadline || "-"} • {task.jam || "-"}</span>
                                     }
                                 </div>

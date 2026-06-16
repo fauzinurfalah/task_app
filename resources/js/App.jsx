@@ -38,7 +38,32 @@ import DosenStudents from "./pages/dosen/Students";
 import DosenCalendar from "./pages/dosen/CalendarPage";
 import DosenProfile from "./pages/dosen/Profile";
 
+import { requestForToken, onMessageListener } from "./firebase";
+import axiosClient from "./axiosClient";
+
 function App() {
+    React.useEffect(() => {
+        // Request token only if user is logged in
+        const token = sessionStorage.getItem("token");
+        if (token) {
+            requestForToken().then((fcmToken) => {
+                if (fcmToken) {
+                    console.log("FCM Token:", fcmToken);
+                    // Send token to backend
+                    axiosClient.post("/fcm-token", { fcm_token: fcmToken })
+                        .catch(err => console.error("Gagal mengirim FCM token ke backend:", err));
+                }
+            });
+
+            // Listen for foreground messages
+            onMessageListener().then(payload => {
+                console.log("Foreground notification received:", payload);
+                // Optionally show a toast notification here
+                alert(`Notifikasi Baru: ${payload.notification?.title}\n${payload.notification?.body}`);
+            }).catch(err => console.log('failed: ', err));
+        }
+    }, []);
+
     return (
         <Routes>
             <Route path="/"         element={<Login />}    />

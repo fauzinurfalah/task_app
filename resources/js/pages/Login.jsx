@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import axiosClient from "../axiosClient";
 import { useNavigate } from "react-router-dom";
+import { requestForToken } from "../firebase";
 
 function Dots() {
     return (
@@ -72,7 +73,7 @@ export default function Auth() {
     const isLogin = mode==="login";
 
     useEffect(() => {
-        const userStr = localStorage.getItem('user');
+        const userStr = sessionStorage.getItem('user');
         if (userStr) {
             const user = JSON.parse(userStr);
             navigate(user.role === 'dosen' ? '/dosen' : '/mahasiswa', { replace: true });
@@ -105,8 +106,17 @@ export default function Auth() {
                     email: form.email,
                     password: form.password,
                 });
-                localStorage.setItem("user", JSON.stringify(response.data.user));
-                localStorage.setItem("token", response.data.token);
+                sessionStorage.setItem("user", JSON.stringify(response.data.user));
+                sessionStorage.setItem("token", response.data.token);
+                
+                // Request FCM Token on successful login (User Gesture)
+                requestForToken().then(fcmToken => {
+                    if (fcmToken) {
+                        axiosClient.post("/fcm-token", { fcm_token: fcmToken })
+                            .catch(err => console.error("Gagal mengirim FCM token ke backend:", err));
+                    }
+                });
+
                 const role = response.data.user?.role || "mahasiswa";
                 setSuccess(true);
                 setTimeout(() => {

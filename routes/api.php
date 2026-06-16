@@ -15,6 +15,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Auth
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
+    Route::post('/fcm-token', [AuthController::class, 'saveToken']);
 
     // ─── Dosen ────────────────────────────────────────────────────────────────
     Route::prefix('dosen')->group(function () {
