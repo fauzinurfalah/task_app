@@ -10,7 +10,6 @@ const axiosClient = axios.create({
 // Interceptor for sending auth token
 axiosClient.interceptors.request.use((config) => {
     // In Login.jsx we saved token, but wait, Login.jsx only saved 'user'. We didn't save 'token'.
-    // Let me check Login.jsx first.
     const token = localStorage.getItem('token');
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;

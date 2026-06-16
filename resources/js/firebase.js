@@ -31,11 +31,11 @@ export const requestForToken = async () => {
   }
 };
 
-export const onMessageListener = () =>
-  new Promise((resolve) => {
-    onMessage(messaging, (payload) => {
-      resolve(payload);
-    });
+export const setupForegroundListener = (callback) => {
+  if (!messaging) return;
+  onMessage(messaging, (payload) => {
+    callback(payload);
   });
+};
 
 export { messaging };

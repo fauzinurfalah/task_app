@@ -38,13 +38,13 @@ import DosenStudents from "./pages/dosen/Students";
 import DosenCalendar from "./pages/dosen/CalendarPage";
 import DosenProfile from "./pages/dosen/Profile";
 
-import { requestForToken, onMessageListener } from "./firebase";
+import { requestForToken, setupForegroundListener } from "./firebase";
 import axiosClient from "./axiosClient";
 
 function App() {
     React.useEffect(() => {
         // Request token only if user is logged in
-        const token = sessionStorage.getItem("token");
+        const token = localStorage.getItem("token");
         if (token) {
             requestForToken().then((fcmToken) => {
                 if (fcmToken) {
@@ -56,11 +56,11 @@ function App() {
             });
 
             // Listen for foreground messages
-            onMessageListener().then(payload => {
+            setupForegroundListener(payload => {
                 console.log("Foreground notification received:", payload);
-                // Optionally show a toast notification here
+                // Kembalikan ke alert sesuai permintaan (bisa dikustomisasi jadi Toast/Modal nanti)
                 alert(`Notifikasi Baru: ${payload.notification?.title}\n${payload.notification?.body}`);
-            }).catch(err => console.log('failed: ', err));
+            });
         }
     }, []);
 

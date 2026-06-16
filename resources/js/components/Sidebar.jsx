@@ -72,7 +72,7 @@ export default function Sidebar({ role = "mahasiswa" }) {
 
     const handleLogout = () => {
         // Clear auth and redirect
-        localStorage.removeItem("token");
+        localStorage.clear();
         navigate("/login");
     };
 

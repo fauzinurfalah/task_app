@@ -73,7 +73,7 @@ export default function Auth() {
     const isLogin = mode==="login";
 
     useEffect(() => {
-        const userStr = sessionStorage.getItem('user');
+        const userStr = localStorage.getItem('user');
         if (userStr) {
             const user = JSON.parse(userStr);
             navigate(user.role === 'dosen' ? '/dosen' : '/mahasiswa', { replace: true });
@@ -106,8 +106,8 @@ export default function Auth() {
                     email: form.email,
                     password: form.password,
                 });
-                sessionStorage.setItem("user", JSON.stringify(response.data.user));
-                sessionStorage.setItem("token", response.data.token);
+                localStorage.setItem("user", JSON.stringify(response.data.user));
+                localStorage.setItem("token", response.data.token);
                 
                 // Request FCM Token on successful login (User Gesture)
                 requestForToken().then(fcmToken => {

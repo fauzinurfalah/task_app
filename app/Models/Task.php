@@ -31,7 +31,7 @@ class Task extends Model
         return [
             'rubric' => 'array',
             'attachments' => 'array',
-            'deadline' => 'date',
+            'deadline' => 'date:Y-m-d',
         ];
     }
 
