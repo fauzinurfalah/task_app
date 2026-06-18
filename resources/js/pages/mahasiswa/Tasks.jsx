@@ -424,7 +424,14 @@ export default function Tasks() {
                 return mQ && mS && mT;
             })
             .sort((a, b) => {
-                if (sort === "due") return new Date(a.due) - new Date(b.due);
+                if (a.status === "completed" && b.status !== "completed") return 1;
+                if (a.status !== "completed" && b.status === "completed") return -1;
+                
+                if (sort === "due") {
+                    const dateA = new Date(`${a.due}T${a.dueTime || "23:59"}`);
+                    const dateB = new Date(`${b.due}T${b.dueTime || "23:59"}`);
+                    return dateA - dateB;
+                }
                 return a.title.localeCompare(b.title);
             });
     }, [allTasks, search, tab, fType, sort]);

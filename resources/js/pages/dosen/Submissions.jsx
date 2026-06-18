@@ -3,18 +3,18 @@ import { Link, useSearchParams } from "react-router-dom";
 import axiosClient from "../../axiosClient";
 import Sidebar from "../../components/Sidebar";
 import NotificationBell from "../../components/NotificationBell";
-import { ChevronLeft, Download, Search, Filter, CheckCircle2, Clock, FileText, CheckCircle, AlertTriangle, HelpCircle } from "lucide-react";
+import { ChevronLeft, Search, Filter, CheckCircle2, Clock, FileText, CheckCircle, AlertTriangle, HelpCircle, X, Check } from "lucide-react";
 
-// ─── Submissions Page ─────────────────────────────────────────────────────────
 export default function DosenSubmissions() {
     const [params]    = useSearchParams();
     const taskIdParam = params.get("task");
-    const [taskFilter, setTaskFilter] = useState(taskIdParam ? parseInt(taskIdParam) : "all");
-    const [statusFilter, setStatusFilter] = useState("all");
+    const [taskFilters, setTaskFilters] = useState(taskIdParam ? [parseInt(taskIdParam)] : []);
+    const [statusFilters, setStatusFilters] = useState([]);
     const [search, setSearch] = useState("");
+    const [showSidebar, setShowSidebar] = useState(false);
 
     const [submissions, setSubmissions] = useState([]);
-    const [tasks, setTasks] = useState({});
+    const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -23,6 +23,7 @@ export default function DosenSubmissions() {
                 const mapped = data.map(s => ({
                     id: s.id,
                     taskId: s.task_id,
+                    taskName: s.task?.nama_tugas || "Unknown",
                     name: s.user?.name || "Unknown",
                     nim: s.user?.nim || "-",
                     file: s.file ? s.file.split('/').pop() : null,
@@ -33,21 +34,47 @@ export default function DosenSubmissions() {
                 }));
                 setSubmissions(mapped);
                 
-                // Extract unique tasks for filter
+                // Extract unique tasks
                 const uniqueTasks = {};
                 data.forEach(s => {
-                    if (s.task) uniqueTasks[s.task.id_task] = s.task.nama_tugas;
+                    if (s.task) {
+                        uniqueTasks[s.task.id_task] = {
+                            id: s.task.id_task,
+                            name: s.task.nama_tugas,
+                            deadline: s.task.deadline
+                        };
+                    }
                 });
-                setTasks(uniqueTasks);
+                
+                // Sort tasks by deadline desc (newest first)
+                const sortedTasks = Object.values(uniqueTasks).sort((a, b) => {
+                    if (!a.deadline) return 1;
+                    if (!b.deadline) return -1;
+                    return new Date(b.deadline) - new Date(a.deadline);
+                });
+                setTasks(sortedTasks);
             })
             .catch(console.error)
             .finally(() => setLoading(false));
     }, []);
 
+    const STATUS_OPTS = [
+        { key: "submitted", label: "Dikumpulkan" },
+        { key: "late", label: "Terlambat" },
+        { key: "pending", label: "Belum Mengumpul" },
+    ];
+
     const data = submissions.filter(s => {
-        const matchTask   = taskFilter === "all" || s.taskId == taskFilter;
-        const matchStatus = statusFilter === "all" || s.status === statusFilter;
-        const matchSearch = (s.name && s.name.toLowerCase().includes(search.toLowerCase())) || (s.nim && s.nim.includes(search));
+        const matchTask = taskFilters.length === 0 || taskFilters.includes(parseInt(s.taskId));
+        const sStatus = s.status === "graded" ? "submitted" : s.status;
+        const matchStatus = statusFilters.length === 0 || statusFilters.includes(sStatus);
+        
+        const q = search.toLowerCase();
+        const matchSearch = !search || 
+            (s.name && s.name.toLowerCase().includes(q)) || 
+            (s.nim && s.nim.toLowerCase().includes(q)) ||
+            (s.taskName && s.taskName.toLowerCase().includes(q));
+            
         return matchTask && matchStatus && matchSearch;
     });
 
@@ -58,10 +85,18 @@ export default function DosenSubmissions() {
         pending:   submissions.filter(s => s.status === "pending").length,
     };
 
+    const toggleTaskFilter = (id) => {
+        setTaskFilters(prev => prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]);
+    };
+
+    const toggleStatusFilter = (status) => {
+        setStatusFilters(prev => prev.includes(status) ? prev.filter(f => f !== status) : [...prev, status]);
+    };
+
     return (
-        <div className="app-wrapper">
+        <div className="app-wrapper" style={{ overflowX: "hidden", position: "relative" }}>
             <Sidebar role="dosen" />
-            <main className="main-content" style={{ background: "#f8fafc", padding: "40px 48px", minHeight: "100vh" }}>
+            <main className="main-content" style={{ background: "#f8fafc", padding: "40px 48px", minHeight: "100vh", paddingRight: showSidebar ? 320 : 48, transition: "padding-right 0.3s ease" }}>
 
                 {/* BREADCRUMB */}
                 <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, fontWeight: 700, marginBottom: 28 }}>
@@ -92,11 +127,14 @@ export default function DosenSubmissions() {
                         { key: "pending",   label: "Belum Mengumpul",   icon: HelpCircle,    count: counts.pending,   bg: "#f8fafc", activeBg: "#64748b", activeColor: "white", activeBadgeBg: "rgba(255,255,255,0.3)", border: "1px solid #e2e8f0" },
                     ].map(c => {
                         const Icon = c.icon;
-                        const isActive = statusFilter === c.key;
+                        const isActive = c.key === "all" ? statusFilters.length === 0 : statusFilters.includes(c.key);
                         return (
                             <button
                                 key={c.key}
-                                onClick={() => setStatusFilter(c.key)}
+                                onClick={() => {
+                                    if(c.key === "all") setStatusFilters([]);
+                                    else toggleStatusFilter(c.key);
+                                }}
                                 style={{
                                     display: "flex", alignItems: "center", gap: 10, padding: "12px 20px", borderRadius: 16, cursor: "pointer", fontFamily: "inherit", transition: "all 0.2s",
                                     border: isActive ? "1px solid transparent" : (c.border || "1px solid transparent"),
@@ -115,22 +153,19 @@ export default function DosenSubmissions() {
                 </div>
 
                 {/* TOOLBAR */}
-                <div style={{ display: "flex", gap: 16, marginBottom: 24, flexWrap: "wrap" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, background: "white", padding: "12px 20px", borderRadius: 16, border: "1px solid #e2e8f0", flex: "1 1 300px", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
+                <div style={{ display: "flex", gap: 16, marginBottom: 24, flexWrap: "wrap", alignItems: "center" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, background: "white", padding: "14px 20px", borderRadius: 16, border: "1px solid #e2e8f0", flex: "1 1 300px", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
                         <Search size={18} color="#94a3b8" />
-                        <input placeholder="Cari nama atau NIM..." value={search} onChange={e => setSearch(e.target.value)} style={{ border: "none", outline: "none", fontSize: 14, fontFamily: "inherit", width: "100%", fontWeight: 600, color: "#0f172a", background: "transparent" }} />
+                        <input placeholder="Cari nama tugas, mahasiswa, atau NIM..." value={search} onChange={e => setSearch(e.target.value)} style={{ border: "none", outline: "none", fontSize: 14, fontFamily: "inherit", width: "100%", fontWeight: 600, color: "#0f172a", background: "transparent" }} />
+                        {search && <button onClick={() => setSearch("")} style={{ background: "#f1f5f9", border: "none", cursor: "pointer", color: "#64748b", display: "flex", padding: 6, borderRadius: "50%" }}><X size={14} /></button>}
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, background: "white", padding: "8px", borderRadius: 16, border: "1px solid #e2e8f0", boxShadow: "0 2px 8px rgba(0,0,0,0.02)", flexWrap: "wrap" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "0 12px", color: "#64748b", fontWeight: 700, fontSize: 13 }}><Filter size={16} /> Filter Tugas:</div>
-                        <button style={{ padding: "8px 16px", borderRadius: 12, border: "none", background: taskFilter === "all" ? "#ea580c" : "transparent", color: taskFilter === "all" ? "white" : "#64748b", fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all 0.2s" }} onClick={() => setTaskFilter("all")}>Semua Tugas</button>
-                        {Object.entries(tasks)
-                            .filter(([id]) => taskIdParam ? id == taskIdParam : true)
-                            .map(([id, name]) => (
-                            <button key={id} style={{ padding: "8px 16px", borderRadius: 12, border: "none", background: taskFilter === parseInt(id) ? "#ea580c" : "transparent", color: taskFilter === parseInt(id) ? "white" : "#64748b", fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all 0.2s" }} onClick={() => setTaskFilter(parseInt(id))}>
-                                {name.split(" ").slice(0, 3).join(" ")}{name.split(" ").length > 3 ? "..." : ""}
-                            </button>
-                        ))}
-                    </div>
+                    
+                    <button onClick={() => setShowSidebar(true)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 24px", borderRadius: 16, border: "none", background: "linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)", color: "white", fontSize: 14, fontWeight: 800, cursor: "pointer", transition: "all 0.2s", boxShadow: "0 4px 12px rgba(79,70,229,0.2)" }} onMouseEnter={e => e.currentTarget.style.transform = "translateY(-2px)"} onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}>
+                        <Filter size={18} /> Filter Pengumpulan
+                        {(taskFilters.length > 0 || statusFilters.length > 0) && (
+                            <span style={{ background: "white", color: "#4f46e5", padding: "2px 8px", borderRadius: 10, fontSize: 12 }}>{taskFilters.length + statusFilters.length}</span>
+                        )}
+                    </button>
                 </div>
 
                 {/* DATA DISPLAY */}
@@ -145,16 +180,16 @@ export default function DosenSubmissions() {
                         <p style={{ fontSize: 15, color: "#64748b", margin: 0 }}>Belum ada pengumpulan yang sesuai dengan filter Anda.</p>
                     </div>
                 ) : (
-                    Object.entries(tasks).map(([taskId, taskName]) => {
-                        const taskSubs = data.filter(s => s.taskId == taskId);
+                    tasks.map((task) => {
+                        const taskSubs = data.filter(s => s.taskId == task.id);
                         if (taskSubs.length === 0) return null;
                         
                         return (
-                            <div key={taskId} style={{ background: "white", borderRadius: 24, overflow: "hidden", border: "1px solid #e2e8f0", boxShadow: "0 4px 16px rgba(0,0,0,0.02)", marginBottom: 24 }}>
+                            <div key={task.id} style={{ background: "white", borderRadius: 24, overflow: "hidden", border: "1px solid #e2e8f0", boxShadow: "0 4px 16px rgba(0,0,0,0.02)", marginBottom: 24 }}>
                                 <div style={{ padding: "24px 32px", background: "#f8fafc", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                                     <h3 style={{ fontSize: 18, fontWeight: 900, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 10 }}>
                                         <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#ea580c" }} />
-                                        {taskName}
+                                        {task.name}
                                     </h3>
                                     <span style={{ padding: "6px 14px", borderRadius: 12, background: "white", border: "1px solid #e2e8f0", fontSize: 13, fontWeight: 800, color: "#475569" }}>
                                         {taskSubs.length} Pengumpulan
@@ -236,8 +271,75 @@ export default function DosenSubmissions() {
                         );
                     })
                 )}
-
             </main>
+
+            {/* FILTER SIDEBAR */}
+            <div style={{ position: "fixed", top: 0, right: showSidebar ? 0 : -320, bottom: 0, width: 320, background: "white", boxShadow: "-4px 0 24px rgba(0,0,0,0.05)", zIndex: 100, transition: "right 0.3s cubic-bezier(0.4, 0, 0.2, 1)", display: "flex", flexDirection: "column" }}>
+                <div style={{ padding: "24px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <h3 style={{ fontSize: 18, fontWeight: 900, color: "#0f172a", margin: 0 }}>Filter Pengumpulan</h3>
+                    <button onClick={() => setShowSidebar(false)} style={{ background: "transparent", border: "none", cursor: "pointer", color: "#94a3b8", display: "flex", alignItems: "center", justifyContent: "center", padding: 4 }}><X size={20} /></button>
+                </div>
+                
+                <div style={{ flex: 1, overflowY: "auto", padding: "24px" }}>
+                    {/* Filter Tugas */}
+                    <div style={{ marginBottom: 32 }}>
+                        <h4 style={{ fontSize: 14, fontWeight: 800, color: "#0f172a", margin: "0 0 16px" }}>Tugas</h4>
+                        
+                        {/* Semua Tugas toggle */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, cursor: "pointer" }} onClick={() => setTaskFilters([])}>
+                            <div style={{ width: 20, height: 20, borderRadius: 6, border: "2px solid", borderColor: taskFilters.length === 0 ? "#4f46e5" : "#cbd5e1", background: taskFilters.length === 0 ? "#4f46e5" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}>
+                                {taskFilters.length === 0 && <Check size={14} color="white" strokeWidth={3} />}
+                            </div>
+                            <span style={{ fontSize: 14, fontWeight: taskFilters.length === 0 ? 800 : 600, color: taskFilters.length === 0 ? "#0f172a" : "#475569" }}>Semua Tugas</span>
+                        </div>
+
+                        {tasks.map(t => {
+                            const isChecked = taskFilters.includes(t.id);
+                            return (
+                                <div key={t.id} style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, cursor: "pointer" }} onClick={() => toggleTaskFilter(t.id)}>
+                                    <div style={{ width: 20, height: 20, borderRadius: 6, border: "2px solid", borderColor: isChecked ? "#4f46e5" : "#cbd5e1", background: isChecked ? "#4f46e5" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}>
+                                        {isChecked && <Check size={14} color="white" strokeWidth={3} />}
+                                    </div>
+                                    <span style={{ fontSize: 14, fontWeight: isChecked ? 800 : 600, color: isChecked ? "#0f172a" : "#475569", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.name}</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Filter Status */}
+                    <div>
+                        <h4 style={{ fontSize: 14, fontWeight: 800, color: "#0f172a", margin: "0 0 16px" }}>Status Pengumpulan</h4>
+                        
+                        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, cursor: "pointer" }} onClick={() => setStatusFilters([])}>
+                            <div style={{ width: 20, height: 20, borderRadius: 6, border: "2px solid", borderColor: statusFilters.length === 0 ? "#4f46e5" : "#cbd5e1", background: statusFilters.length === 0 ? "#4f46e5" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}>
+                                {statusFilters.length === 0 && <Check size={14} color="white" strokeWidth={3} />}
+                            </div>
+                            <span style={{ fontSize: 14, fontWeight: statusFilters.length === 0 ? 800 : 600, color: statusFilters.length === 0 ? "#0f172a" : "#475569" }}>Semua Status</span>
+                        </div>
+
+                        {STATUS_OPTS.map(o => {
+                            const isChecked = statusFilters.includes(o.key);
+                            return (
+                                <div key={o.key} style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, cursor: "pointer" }} onClick={() => toggleStatusFilter(o.key)}>
+                                    <div style={{ width: 20, height: 20, borderRadius: 6, border: "2px solid", borderColor: isChecked ? "#4f46e5" : "#cbd5e1", background: isChecked ? "#4f46e5" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}>
+                                        {isChecked && <Check size={14} color="white" strokeWidth={3} />}
+                                    </div>
+                                    <span style={{ fontSize: 14, fontWeight: isChecked ? 800 : 600, color: isChecked ? "#0f172a" : "#475569" }}>{o.label}</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                <div style={{ padding: "24px", borderTop: "1px solid #f1f5f9", display: "flex", gap: 12 }}>
+                    <button onClick={() => { setTaskFilters([]); setStatusFilters([]); setSearch(""); setShowSidebar(false); }} style={{ flex: 1, padding: "12px", borderRadius: 12, border: "1px solid #e2e8f0", background: "white", color: "#0f172a", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Reset</button>
+                    <button onClick={() => setShowSidebar(false)} style={{ flex: 1, padding: "12px", borderRadius: 12, border: "none", background: "linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%)", color: "white", fontSize: 14, fontWeight: 800, cursor: "pointer", boxShadow: "0 4px 12px rgba(79,70,229,0.2)" }}>Terapkan</button>
+                </div>
+            </div>
+            {/* Sidebar Overlay */}
+            {showSidebar && (
+                <div onClick={() => setShowSidebar(false)} style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.4)", zIndex: 90, backdropFilter: "blur(2px)" }} />
+            )}
         </div>
     );
 }

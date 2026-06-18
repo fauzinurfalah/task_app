@@ -1,8 +1,76 @@
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import Sidebar from "../../components/Sidebar";
-import { ChevronLeft, Save, FileText, ChevronDown, ChevronUp, CheckCircle2, Award, ClipboardCheck } from "lucide-react";
+import { ChevronLeft, Save, FileText, ChevronDown, ChevronUp, CheckCircle2, Award, ClipboardCheck, Users, Layers, Target, Clock3 } from "lucide-react";
 import axiosClient from "../../axiosClient";
+
+const STATUS_MAP = {
+    active: { label: "Aktif",    bg: "#ecfdf5", color: "#059669", border: "#10b981", dot: "#10b981" },
+    closed: { label: "Ditutup",  bg: "#fef2f2", color: "#dc2626", border: "#ef4444", dot: "#ef4444" },
+    graded: { label: "Dinilai",  bg: "#eef2ff", color: "#4f46e5", border: "#6366f1", dot: "#6366f1" },
+};
+
+// ─── Task Card ────────────────────────────────────────────────────────────────
+function TaskCard({ task, onSelect }) {
+    const pct = task.total ? Math.round((task.submitted / task.total) * 100) : 0;
+    const gradedPct = task.submitted ? Math.round((task.graded / task.submitted) * 100) : 0;
+    const s = STATUS_MAP[task.status] || STATUS_MAP.active;
+    
+    return (
+        <div onClick={() => onSelect(task.id)} style={{
+            background: "white", borderRadius: 24, padding: "24px",
+            border: "1px solid #e2e8f0", boxShadow: "0 4px 16px rgba(0,0,0,0.02)",
+            display: "flex", flexDirection: "column", gap: 20, transition: "all 0.2s ease-out",
+            position: "relative", overflow: "hidden", cursor: "pointer"
+        }}
+            onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = "0 12px 32px rgba(0,0,0,0.06)"; e.currentTarget.style.borderColor = "#4f46e5"; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.02)"; e.currentTarget.style.borderColor = "#e2e8f0"; }}>
+            
+            <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 6, background: s.dot, borderRadius: "24px 0 0 24px" }} />
+
+            {/* Top row */}
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
+                <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flex: 1 }}>
+                    <div style={{ width: 48, height: 48, borderRadius: 16, background: "#f8fafc", border: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                        <Layers size={22} color="#64748b" />
+                    </div>
+                    <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                            <span style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>{task.course}</span>
+                        </div>
+                        <h3 style={{ fontSize: 18, fontWeight: 900, color: "#0f172a", margin: 0, letterSpacing: "-0.3px", lineHeight: 1.3 }}>{task.title}</h3>
+                    </div>
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 800, padding: "6px 12px", borderRadius: 12, background: s.bg, color: s.color, border: `1px solid ${s.border}40`, flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.dot }} /> {s.label}
+                </span>
+            </div>
+
+            {/* Meta */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", background: "#f8fafc", borderRadius: 16, border: "1px solid #f1f5f9" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 700, color: "#475569" }}>
+                    <Clock3 size={16} color="#94a3b8" />
+                    {task.deadline}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 700, color: "#475569" }}>
+                    <Users size={16} color="#94a3b8" />
+                    {task.submitted} / {task.total} Mahasiswa
+                </div>
+            </div>
+
+            {/* Progress */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12, fontWeight: 800 }}>
+                    <span style={{ color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px" }}>Progress Penilaian</span>
+                    <span style={{ color: gradedPct === 100 ? "#059669" : "#4f46e5" }}>{task.graded} / {task.submitted} ({gradedPct}%)</span>
+                </div>
+                <div style={{ height: 8, background: "#f1f5f9", borderRadius: 99, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${gradedPct}%`, background: gradedPct === 100 ? "#10b981" : "linear-gradient(90deg, #4f46e5, #3b82f6)", borderRadius: 99, transition: "width 0.5s ease" }} />
+                </div>
+            </div>
+        </div>
+    );
+}
 
 // ─── Grading Row ──────────────────────────────────────────────────────────────
 function GradingRow({ submission, index, onGradeSaved }) {
@@ -144,45 +212,148 @@ function GradingRow({ submission, index, onGradeSaved }) {
 
 // ─── Grading Page ─────────────────────────────────────────────────────────────
 export default function DosenGrading() {
-    const [params] = useSearchParams();
+    const [params, setParams] = useSearchParams();
     const submissionId = params.get("submission");
+    const taskIdParam = params.get("task");
+    
+    const [tasks, setTasks] = useState([]);
     const [submissions, setSubmissions] = useState([]);
     const [loading, setLoading] = useState(true);
+    
+    const [selectedTaskId, setSelectedTaskId] = useState(taskIdParam ? parseInt(taskIdParam) : null);
 
+    useEffect(() => {
+        setLoading(true);
+        Promise.all([
+            axiosClient.get('/dosen/tasks'),
+            axiosClient.get('/dosen/submissions')
+        ]).then(([resTasks, resSubs]) => {
+            const mappedTasks = resTasks.data.map(t => ({
+                id: t.id_task,
+                kode: t.kode_tugas,
+                title: t.nama_tugas,
+                course: t.nama_matkul || "Umum",
+                deadline: t.deadline ? t.deadline.substring(0, 10) : "",
+                time: t.jam,
+                submitted: t.submitted_count || 0,
+                graded: t.graded_count || 0,
+                total: t.total_students || 1,
+                status: t.status || "active",
+                fullyGraded: t.fully_graded || false,
+                desc: t.deskripsi
+            }));
+            setTasks(mappedTasks);
+            
+            let filteredSubs = resSubs.data;
+            if (submissionId) {
+                const sub = filteredSubs.find(s => s.id == submissionId);
+                if (sub) {
+                    setSelectedTaskId(sub.task_id);
+                }
+            }
+            setSubmissions(filteredSubs);
+        }).catch(err => console.error(err))
+        .finally(() => setLoading(false));
+    }, [submissionId]);
+    
     const fetchSubmissions = () => {
         axiosClient.get('/dosen/submissions')
             .then(({ data }) => {
-                let filtered = data;
-                if (submissionId) {
-                    filtered = data.filter(s => s.id == submissionId);
-                }
-                setSubmissions(filtered);
+                setSubmissions(data);
             })
-            .catch(err => console.error(err))
-            .finally(() => setLoading(false));
+            .catch(err => console.error(err));
     };
 
-    useEffect(() => {
-        fetchSubmissions();
-    }, [submissionId]);
+    if (loading) return (
+        <div className="app-wrapper">
+            <Sidebar role="dosen" />
+            <main className="main-content" style={{ background: "#f8fafc", padding: "40px 48px", minHeight: "100vh" }}>
+                <div style={{ padding: 60, textAlign: "center", fontSize: 16, fontWeight: 600, color: "#64748b" }}>Memuat data penilaian...</div>
+            </main>
+        </div>
+    );
 
-    const graded   = submissions.filter(s => s.grade !== null).length;
-    const avg      = submissions.filter(s => s.grade !== null).reduce((a, s) => a + s.grade, 0) / (graded || 1);
+    // If a task is selected, show its submissions
+    if (selectedTaskId) {
+        const taskSubs = submissions.filter(s => s.task_id === selectedTaskId);
+        const taskInfo = tasks.find(t => t.id === selectedTaskId) || { title: "Task" };
+        const graded = taskSubs.filter(s => s.grade !== null).length;
+        const avg = taskSubs.filter(s => s.grade !== null).reduce((a, s) => a + s.grade, 0) / (graded || 1);
 
-    if (loading) return <div style={{ padding: 60, textAlign: "center", fontSize: 16, fontWeight: 600, color: "#64748b" }}>Memuat data penilaian...</div>;
+        return (
+            <div className="app-wrapper">
+                <Sidebar role="dosen" />
+                <main className="main-content" style={{ background: "#f8fafc", padding: "40px 48px", minHeight: "100vh" }}>
+                    {/* BREADCRUMB */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, fontWeight: 700, marginBottom: 24 }}>
+                        <Link to="/dosen/tasks" style={{ color: "#64748b", textDecoration: "none", display: "flex", alignItems: "center", gap: 4 }}><ChevronLeft size={16} /> Kelola Tugas</Link>
+                        <span style={{ color: "#cbd5e1" }}>/</span>
+                        <button onClick={() => { setSelectedTaskId(null); setParams({}); }} style={{ background: "none", border: "none", color: "#64748b", cursor: "pointer", fontWeight: 700, fontSize: 13, padding: 0 }}>Penilaian</button>
+                        <span style={{ color: "#cbd5e1" }}>/</span>
+                        <span style={{ color: "#4f46e5", background: "#eef2ff", padding: "4px 10px", borderRadius: 8 }}>{taskInfo.title}</span>
+                    </div>
 
-    const taskName = submissions.length > 0 ? submissions[0].task?.nama_tugas : "Tidak diketahui";
+                    {/* TOPBAR */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 36 }}>
+                        <div>
+                            <h1 style={{ fontSize: 32, fontWeight: 900, color: "#0f172a", margin: "0 0 8px", letterSpacing: "-1px" }}>Penilaian Tugas</h1>
+                            <p style={{ fontSize: 15, color: "#64748b", margin: 0, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
+                                <ClipboardCheck size={16} color="#4f46e5" />
+                                {taskInfo.title} — <span style={{ color: "#0f172a" }}>{taskSubs.length} Pengumpulan</span>
+                            </p>
+                        </div>
+                        <div style={{ display: "flex", gap: 16 }}>
+                            <div style={{ background: "white", borderRadius: 16, padding: "14px 24px", border: "1px solid #e2e8f0", boxShadow: "0 2px 8px rgba(0,0,0,0.02)", display: "flex", alignItems: "center", gap: 16 }}>
+                                <div style={{ width: 44, height: 44, borderRadius: 12, background: "#eef2ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                    <CheckCircle2 size={24} color="#4f46e5" />
+                                </div>
+                                <div>
+                                    <p style={{ fontSize: 24, fontWeight: 900, color: "#0f172a", margin: 0, lineHeight: 1 }}>{graded}/{taskSubs.length}</p>
+                                    <p style={{ fontSize: 11, fontWeight: 800, color: "#64748b", margin: "4px 0 0", textTransform: "uppercase", letterSpacing: "0.5px" }}>Selesai Dinilai</p>
+                                </div>
+                            </div>
+                            <div style={{ background: "white", borderRadius: 16, padding: "14px 24px", border: "1px solid #e2e8f0", boxShadow: "0 2px 8px rgba(0,0,0,0.02)", display: "flex", alignItems: "center", gap: 16 }}>
+                                <div style={{ width: 44, height: 44, borderRadius: 12, background: "#fff7ed", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                    <Award size={24} color="#ea580c" />
+                                </div>
+                                <div>
+                                    <p style={{ fontSize: 24, fontWeight: 900, color: "#0f172a", margin: 0, lineHeight: 1 }}>{avg.toFixed(1)}</p>
+                                    <p style={{ fontSize: 11, fontWeight: 800, color: "#64748b", margin: "4px 0 0", textTransform: "uppercase", letterSpacing: "0.5px" }}>Rata-rata Nilai</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button onClick={() => { setSelectedTaskId(null); setParams({}); }} style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 16px", borderRadius: 12, background: "white", border: "1px solid #e2e8f0", color: "#0f172a", fontSize: 14, fontWeight: 800, cursor: "pointer", marginBottom: 24, transition: "all 0.2s" }} onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"} onMouseLeave={e => e.currentTarget.style.background = "white"}>
+                        <ChevronLeft size={18} /> Kembali ke Daftar Tugas
+                    </button>
 
+                    {/* LIST PENGUMPULAN */}
+                    <div style={{ background: "white", borderRadius: 24, overflow: "hidden", border: "1px solid #e2e8f0", boxShadow: "0 4px 16px rgba(0,0,0,0.02)" }}>
+                        {taskSubs.length === 0 ? (
+                            <div style={{ padding: "60px 20px", textAlign: "center", background: "white" }}>
+                                <p style={{ fontSize: 15, color: "#64748b", fontWeight: 600 }}>Belum ada pengumpulan untuk tugas ini.</p>
+                            </div>
+                        ) : (
+                            taskSubs.map((s, i) => (
+                                <GradingRow key={s.id} submission={s} index={i} onGradeSaved={fetchSubmissions} />
+                            ))
+                        )}
+                    </div>
+                </main>
+            </div>
+        );
+    }
+
+    // Default Card View
     return (
         <div className="app-wrapper">
             <Sidebar role="dosen" />
-            <main className="main-content" style={{ background: "#f8fafc", padding: "40px 48px" }}>
+            <main className="main-content" style={{ background: "#f8fafc", padding: "40px 48px", minHeight: "100vh" }}>
 
                 {/* BREADCRUMB */}
                 <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, fontWeight: 700, marginBottom: 24 }}>
                     <Link to="/dosen/tasks" style={{ color: "#64748b", textDecoration: "none", display: "flex", alignItems: "center", gap: 4 }}><ChevronLeft size={16} /> Kelola Tugas</Link>
-                    <span style={{ color: "#cbd5e1" }}>/</span>
-                    <Link to="/dosen/submissions" style={{ color: "#64748b", textDecoration: "none" }}>Pengumpulan</Link>
                     <span style={{ color: "#cbd5e1" }}>/</span>
                     <span style={{ color: "#4f46e5", background: "#eef2ff", padding: "4px 10px", borderRadius: 8 }}>Penilaian</span>
                 </div>
@@ -190,70 +361,24 @@ export default function DosenGrading() {
                 {/* TOPBAR */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 36 }}>
                     <div>
-                        <h1 style={{ fontSize: 32, fontWeight: 900, color: "#0f172a", margin: "0 0 8px", letterSpacing: "-1px" }}>Penilaian Tugas</h1>
-                        <p style={{ fontSize: 15, color: "#64748b", margin: 0, fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}>
-                            <ClipboardCheck size={16} color="#4f46e5" />
-                            {submissions.some(s => s.task_id !== submissions[0]?.task_id) ? "Berbagai Tugas" : taskName} — <span style={{ color: "#0f172a" }}>{submissions.length} Pengumpulan</span>
-                        </p>
-                    </div>
-                    <div style={{ display: "flex", gap: 16 }}>
-                        <div style={{ background: "white", borderRadius: 16, padding: "14px 24px", border: "1px solid #e2e8f0", boxShadow: "0 2px 8px rgba(0,0,0,0.02)", display: "flex", alignItems: "center", gap: 16 }}>
-                            <div style={{ width: 44, height: 44, borderRadius: 12, background: "#eef2ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                <CheckCircle2 size={24} color="#4f46e5" />
-                            </div>
-                            <div>
-                                <p style={{ fontSize: 24, fontWeight: 900, color: "#0f172a", margin: 0, lineHeight: 1 }}>{graded}/{submissions.length}</p>
-                                <p style={{ fontSize: 11, fontWeight: 800, color: "#64748b", margin: "4px 0 0", textTransform: "uppercase", letterSpacing: "0.5px" }}>Selesai Dinilai</p>
-                            </div>
-                        </div>
-                        <div style={{ background: "white", borderRadius: 16, padding: "14px 24px", border: "1px solid #e2e8f0", boxShadow: "0 2px 8px rgba(0,0,0,0.02)", display: "flex", alignItems: "center", gap: 16 }}>
-                            <div style={{ width: 44, height: 44, borderRadius: 12, background: "#fff7ed", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                <Award size={24} color="#ea580c" />
-                            </div>
-                            <div>
-                                <p style={{ fontSize: 24, fontWeight: 900, color: "#0f172a", margin: 0, lineHeight: 1 }}>{avg.toFixed(1)}</p>
-                                <p style={{ fontSize: 11, fontWeight: 800, color: "#64748b", margin: "4px 0 0", textTransform: "uppercase", letterSpacing: "0.5px" }}>Rata-rata Nilai</p>
-                            </div>
-                        </div>
+                        <h1 style={{ fontSize: 32, fontWeight: 900, color: "#0f172a", margin: "0 0 8px", letterSpacing: "-1px" }}>Pilih Tugas</h1>
+                        <p style={{ fontSize: 15, color: "#64748b", margin: 0, fontWeight: 600 }}>Pilih tugas di bawah ini untuk melihat dan menilai pengumpulan mahasiswa.</p>
                     </div>
                 </div>
 
-                {/* GRADING CARDS */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-                    {submissions.length === 0 ? (
-                        <div style={{ background: "white", borderRadius: 32, padding: "80px 20px", textAlign: "center", boxShadow: "0 4px 20px rgba(0,0,0,.02)", border: "2px dashed #e2e8f0" }}>
+                {/* GRADING CARDS GRID */}
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 24 }}>
+                    {tasks.length === 0 ? (
+                        <div style={{ gridColumn: "1/-1", background: "white", borderRadius: 32, padding: "80px 20px", textAlign: "center", boxShadow: "0 4px 20px rgba(0,0,0,.02)", border: "2px dashed #e2e8f0" }}>
                             <div style={{ width: 80, height: 80, borderRadius: "50%", background: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
-                                <ClipboardCheck size={40} color="#cbd5e1" />
+                                <Target size={40} color="#cbd5e1" />
                             </div>
-                            <h3 style={{ fontSize: 24, fontWeight: 900, color: "#0f172a", margin: "0 0 10px" }}>Tidak Ada Pengumpulan</h3>
-                            <p style={{ fontSize: 15, color: "#64748b", margin: "0", maxWidth: 400, marginLeft: "auto", marginRight: "auto" }}>Belum ada mahasiswa yang mengumpulkan tugas ini.</p>
+                            <h3 style={{ fontSize: 24, fontWeight: 900, color: "#0f172a", margin: "0 0 10px" }}>Belum Ada Tugas</h3>
+                            <p style={{ fontSize: 15, color: "#64748b", margin: "0", maxWidth: 400, marginLeft: "auto", marginRight: "auto" }}>Anda belum memiliki tugas untuk dinilai.</p>
                         </div>
                     ) : (
-                        Object.entries(
-                            submissions.reduce((acc, s) => {
-                                const tId = s.task_id || "unknown";
-                                const tName = s.task?.nama_tugas || `Task #${tId}`;
-                                if (!acc[tId]) acc[tId] = { name: tName, subs: [] };
-                                acc[tId].subs.push(s);
-                                return acc;
-                            }, {})
-                        ).map(([tId, group]) => (
-                            <div key={tId} style={{ background: "white", borderRadius: 24, overflow: "hidden", border: "1px solid #e2e8f0", boxShadow: "0 4px 16px rgba(0,0,0,0.02)" }}>
-                                <div style={{ padding: "20px 24px", background: "#f8fafc", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                    <h3 style={{ fontSize: 18, fontWeight: 900, color: "#0f172a", margin: 0, display: "flex", alignItems: "center", gap: 10 }}>
-                                        <div style={{ width: 12, height: 12, borderRadius: "50%", background: "#4f46e5" }} />
-                                        {group.name}
-                                    </h3>
-                                    <span style={{ padding: "4px 12px", borderRadius: 12, background: "white", border: "1px solid #e2e8f0", fontSize: 12, fontWeight: 800, color: "#475569" }}>
-                                        {group.subs.length} Pengumpulan
-                                    </span>
-                                </div>
-                                <div style={{ display: "flex", flexDirection: "column" }}>
-                                    {group.subs.map((s, i) => (
-                                        <GradingRow key={s.id} submission={s} index={i} onGradeSaved={fetchSubmissions} />
-                                    ))}
-                                </div>
-                            </div>
+                        tasks.map((t) => (
+                            <TaskCard key={t.id} task={t} onSelect={(id) => setSelectedTaskId(id)} />
                         ))
                     )}
                 </div>

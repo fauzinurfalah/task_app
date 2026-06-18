@@ -240,112 +240,139 @@ export default function DetailTask() {
                             </div>
                         </div>
 
-                        {/* Description */}
-                        <div style={{ background: "white", borderRadius: 24, padding: "24px 32px", boxShadow: "0 4px 16px rgba(0,0,0,.02)", border: "1px solid #e2e8f0" }}>
-                            <h2 style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 18, fontWeight: 900, color: "#0f172a", margin: "0 0 16px" }}>
-                                <Layers size={20} color="#4f46e5" />Deskripsi Tugas
-                            </h2>
-                            <div style={{ fontSize: 15, color: "#334155", lineHeight: 1.8, whiteSpace: "pre-wrap", background: "#fafafa", padding: "20px 24px", borderRadius: 16, border: "1px solid #f1f5f9" }}>
-                                {task.description || <span style={{ color: "#94a3b8", fontStyle: "italic" }}>Tidak ada deskripsi.</span>}
-                            </div>
-                        </div>
-
-                        {/* Tabs Navigation */}
-                        <div style={{ display: "flex", gap: 8, background: "white", borderRadius: 20, padding: 8, width: "fit-content", border: "1px solid #e2e8f0", boxShadow: "0 2px 10px rgba(0,0,0,0.02)" }}>
-                            {TABS.map(t => {
-                                const I = t.icon; return (
-                                    <button key={t.key} onClick={() => setTab(t.key)}
-                                        style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 20px", borderRadius: 14, border: "none", background: tab === t.key ? "#0f172a" : "transparent", fontSize: 14, fontWeight: 700, color: tab === t.key ? "white" : "#64748b", cursor: "pointer", fontFamily: "inherit", transition: "all .2s" }}>
-                                        <I size={16} />{t.label}
-                                        <span style={{ background: tab === t.key ? "rgba(255,255,255,.2)" : "#f1f5f9", color: tab === t.key ? "white" : "#475569", borderRadius: 10, fontSize: 12, fontWeight: 800, padding: "2px 8px", minWidth: 26, textAlign: "center" }}>{t.count}</span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-
-                        {/* Tab Content: Subtasks */}
-                        {tab === "subtasks" && (
-                            <div style={{ background: "white", borderRadius: 24, padding: "24px 32px", boxShadow: "0 4px 16px rgba(0,0,0,.02)", border: "1px solid #e2e8f0" }}>
-                                {subtasks.length > 0 && (
-                                    <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24, fontSize: 14, color: "#64748b", fontWeight: 700 }}>
-                                        <span>{doneSubs} dari {subtasks.length} selesai</span>
-                                        <div style={{ flex: 1, height: 8, background: "#f1f5f9", borderRadius: 99, overflow: "hidden" }}>
-                                            <div style={{ height: "100%", width: `${subPct}%`, background: "linear-gradient(90deg, #4f46e5, #3b82f6)", borderRadius: 99, transition: "width .4s ease" }} />
+                        {(status === "completed" || status === "late") ? (
+                            <div style={{ background: "white", borderRadius: 24, padding: "40px 32px", boxShadow: "0 4px 16px rgba(0,0,0,.02)", border: "1px solid #e2e8f0", textAlign: "center" }}>
+                                {submission?.grade !== null && submission?.grade !== undefined ? (
+                                    <>
+                                        <div style={{ width: 80, height: 80, borderRadius: "50%", background: submission.grade >= 80 ? "#ecfdf5" : submission.grade >= 60 ? "#fff7ed" : "#fef2f2", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
+                                            <span style={{ fontSize: 32, fontWeight: 900, color: submission.grade >= 80 ? "#059669" : submission.grade >= 60 ? "#ea580c" : "#dc2626" }}>{submission.grade}</span>
                                         </div>
-                                        <span style={{ color: "#4f46e5", fontWeight: 900 }}>{subPct}%</span>
+                                        <h2 style={{ fontSize: 24, fontWeight: 900, color: "#0f172a", margin: "0 0 16px" }}>Nilai dari Dosen</h2>
+                                        <div style={{ background: "#f8fafc", padding: "20px 24px", borderRadius: 16, border: "1px solid #e2e8f0", display: "inline-block", textAlign: "left", minWidth: "280px", maxWidth: "100%" }}>
+                                            <p style={{ fontSize: 13, fontWeight: 800, color: "#64748b", margin: "0 0 8px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Catatan / Feedback:</p>
+                                            <p style={{ fontSize: 15, color: "#334155", margin: 0, fontWeight: 600, lineHeight: 1.6 }}>{submission.feedback || <span style={{ color: "#94a3b8", fontStyle: "italic" }}>Tidak ada catatan.</span>}</p>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div style={{ width: 80, height: 80, borderRadius: "50%", background: "#f8fafc", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", border: "1px solid #e2e8f0" }}>
+                                            <Clock size={40} color="#94a3b8" />
+                                        </div>
+                                        <h2 style={{ fontSize: 24, fontWeight: 900, color: "#0f172a", margin: "0 0 12px" }}>Menunggu Penilaian</h2>
+                                        <p style={{ fontSize: 15, color: "#64748b", margin: 0, maxWidth: 400, marginLeft: "auto", marginRight: "auto" }}>Tugas Anda telah dikirimkan. Silakan tunggu dosen memberikan nilai.</p>
+                                    </>
+                                )}
+                            </div>
+                        ) : (
+                            <>
+                                {/* Description */}
+                                <div style={{ background: "white", borderRadius: 24, padding: "24px 32px", boxShadow: "0 4px 16px rgba(0,0,0,.02)", border: "1px solid #e2e8f0" }}>
+                                    <h2 style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 18, fontWeight: 900, color: "#0f172a", margin: "0 0 16px" }}>
+                                        <Layers size={20} color="#4f46e5" />Deskripsi Tugas
+                                    </h2>
+                                    <div style={{ fontSize: 15, color: "#334155", lineHeight: 1.8, whiteSpace: "pre-wrap", background: "#fafafa", padding: "20px 24px", borderRadius: 16, border: "1px solid #f1f5f9" }}>
+                                        {task.description || <span style={{ color: "#94a3b8", fontStyle: "italic" }}>Tidak ada deskripsi.</span>}
+                                    </div>
+                                </div>
+
+                                {/* Tabs Navigation */}
+                                <div style={{ display: "flex", gap: 8, background: "white", borderRadius: 20, padding: 8, width: "fit-content", border: "1px solid #e2e8f0", boxShadow: "0 2px 10px rgba(0,0,0,0.02)" }}>
+                                    {TABS.map(t => {
+                                        const I = t.icon; return (
+                                            <button key={t.key} onClick={() => setTab(t.key)}
+                                                style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 20px", borderRadius: 14, border: "none", background: tab === t.key ? "#0f172a" : "transparent", fontSize: 14, fontWeight: 700, color: tab === t.key ? "white" : "#64748b", cursor: "pointer", fontFamily: "inherit", transition: "all .2s" }}>
+                                                <I size={16} />{t.label}
+                                                <span style={{ background: tab === t.key ? "rgba(255,255,255,.2)" : "#f1f5f9", color: tab === t.key ? "white" : "#475569", borderRadius: 10, fontSize: 12, fontWeight: 800, padding: "2px 8px", minWidth: 26, textAlign: "center" }}>{t.count}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Tab Content: Subtasks */}
+                                {tab === "subtasks" && (
+                                    <div style={{ background: "white", borderRadius: 24, padding: "24px 32px", boxShadow: "0 4px 16px rgba(0,0,0,.02)", border: "1px solid #e2e8f0" }}>
+                                        {subtasks.length > 0 && (
+                                            <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24, fontSize: 14, color: "#64748b", fontWeight: 700 }}>
+                                                <span>{doneSubs} dari {subtasks.length} selesai</span>
+                                                <div style={{ flex: 1, height: 8, background: "#f1f5f9", borderRadius: 99, overflow: "hidden" }}>
+                                                    <div style={{ height: "100%", width: `${subPct}%`, background: "linear-gradient(90deg, #4f46e5, #3b82f6)", borderRadius: 99, transition: "width .4s ease" }} />
+                                                </div>
+                                                <span style={{ color: "#4f46e5", fontWeight: 900 }}>{subPct}%</span>
+                                            </div>
+                                        )}
+                                        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
+                                            {subtasks.length === 0 && <div style={{ padding: "30px", textAlign: "center", background: "#f8fafc", borderRadius: 16, border: "1px dashed #cbd5e1" }}><p style={{ fontSize: 14, color: "#64748b", fontWeight: 600, margin: 0 }}>Belum ada sub-tugas yang ditambahkan.</p></div>}
+                                            {subtasks.map(sub => (
+                                                <div key={sub.id} className="sub-row" style={{ display: "flex", alignItems: "center", gap: 16, padding: "16px 20px", background: "#f8fafc", borderRadius: 16, border: "1px solid #e2e8f0", transition: "all .2s" }}
+                                                    onMouseEnter={e => { e.currentTarget.style.background = "white"; e.currentTarget.style.borderColor = "#cbd5e1"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.02)"; }}
+                                                    onMouseLeave={e => { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.boxShadow = "none"; }}>
+                                                    <button onClick={() => toggleSub(sub.id)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexShrink: 0, padding: 0, transition: "transform .2s" }}
+                                                        onMouseEnter={e => e.currentTarget.style.transform = "scale(1.15)"}
+                                                        onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>
+                                                        {sub.done ? <CheckCircle2 size={24} color="#10b981" /> : <Circle size={24} color="#cbd5e1" />}
+                                                    </button>
+                                                    <span style={{ flex: 1, fontSize: 15, fontWeight: 700, color: sub.done ? "#94a3b8" : "#0f172a", textDecoration: sub.done ? "line-through" : "none", transition: "all .2s" }}>{sub.label}</span>
+                                                    <button onClick={() => deleteSub(sub.id)} className="sub-del" style={{ background: "#fef2f2", border: "none", cursor: "pointer", color: "#dc2626", display: "flex", padding: 8, borderRadius: 10 }}>
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div style={{ display: "flex", gap: 12 }}>
+                                            <input value={newSub} onChange={e => setNewSub(e.target.value)}
+                                                onKeyDown={e => e.key === "Enter" && addSub()}
+                                                placeholder="Ketik sub-tugas baru... (tekan Enter)"
+                                                style={{ flex: 1, padding: "14px 20px", border: "1px solid #e2e8f0", borderRadius: 16, fontSize: 14, fontFamily: "inherit", outline: "none", transition: "all .2s", background: "white" }}
+                                                onFocus={e => { e.target.style.borderColor = "#4f46e5"; e.target.style.boxShadow = "0 0 0 4px rgba(79,70,229,.1)"; }}
+                                                onBlur={e => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }}
+                                            />
+                                            <button onClick={addSub} style={{ width: 48, height: 48, borderRadius: 16, background: "#0f172a", color: "white", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all .2s" }}
+                                                onMouseEnter={e => e.currentTarget.style.background = "#1e293b"}
+                                                onMouseLeave={e => e.currentTarget.style.background = "#0f172a"}>
+                                                <Plus size={20} />
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
-                                <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
-                                    {subtasks.length === 0 && <div style={{ padding: "30px", textAlign: "center", background: "#f8fafc", borderRadius: 16, border: "1px dashed #cbd5e1" }}><p style={{ fontSize: 14, color: "#64748b", fontWeight: 600, margin: 0 }}>Belum ada sub-tugas yang ditambahkan.</p></div>}
-                                    {subtasks.map(sub => (
-                                        <div key={sub.id} className="sub-row" style={{ display: "flex", alignItems: "center", gap: 16, padding: "16px 20px", background: "#f8fafc", borderRadius: 16, border: "1px solid #e2e8f0", transition: "all .2s" }}
-                                            onMouseEnter={e => { e.currentTarget.style.background = "white"; e.currentTarget.style.borderColor = "#cbd5e1"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.02)"; }}
-                                            onMouseLeave={e => { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.boxShadow = "none"; }}>
-                                            <button onClick={() => toggleSub(sub.id)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", flexShrink: 0, padding: 0, transition: "transform .2s" }}
-                                                onMouseEnter={e => e.currentTarget.style.transform = "scale(1.15)"}
-                                                onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>
-                                                {sub.done ? <CheckCircle2 size={24} color="#10b981" /> : <Circle size={24} color="#cbd5e1" />}
-                                            </button>
-                                            <span style={{ flex: 1, fontSize: 15, fontWeight: 700, color: sub.done ? "#94a3b8" : "#0f172a", textDecoration: sub.done ? "line-through" : "none", transition: "all .2s" }}>{sub.label}</span>
-                                            <button onClick={() => deleteSub(sub.id)} className="sub-del" style={{ background: "#fef2f2", border: "none", cursor: "pointer", color: "#dc2626", display: "flex", padding: 8, borderRadius: 10 }}>
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                                <div style={{ display: "flex", gap: 12 }}>
-                                    <input value={newSub} onChange={e => setNewSub(e.target.value)}
-                                        onKeyDown={e => e.key === "Enter" && addSub()}
-                                        placeholder="Ketik sub-tugas baru... (tekan Enter)"
-                                        style={{ flex: 1, padding: "14px 20px", border: "1px solid #e2e8f0", borderRadius: 16, fontSize: 14, fontFamily: "inherit", outline: "none", transition: "all .2s", background: "white" }}
-                                        onFocus={e => { e.target.style.borderColor = "#4f46e5"; e.target.style.boxShadow = "0 0 0 4px rgba(79,70,229,.1)"; }}
-                                        onBlur={e => { e.target.style.borderColor = "#e2e8f0"; e.target.style.boxShadow = "none"; }}
-                                    />
-                                    <button onClick={addSub} style={{ width: 48, height: 48, borderRadius: 16, background: "#0f172a", color: "white", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all .2s" }}
-                                        onMouseEnter={e => e.currentTarget.style.background = "#1e293b"}
-                                        onMouseLeave={e => e.currentTarget.style.background = "#0f172a"}>
-                                        <Plus size={20} />
-                                    </button>
-                                </div>
-                            </div>
-                        )}
 
-                        {/* Tab Content: Attachments */}
-                        {tab === "attachments" && (
-                            <div style={{ background: "white", borderRadius: 24, padding: "24px 32px", boxShadow: "0 4px 16px rgba(0,0,0,.02)", border: "1px solid #e2e8f0" }}>
-                                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                                    {task.attachment ? (
-                                        <>
-                                            {(typeof task.attachment === 'string' && task.attachment.match(/\.(jpeg|jpg|gif|png|webp)$/i)) ? (
-                                                <div style={{ marginBottom: 16, borderRadius: 16, overflow: "hidden", border: "1px solid #e2e8f0" }}>
-                                                    <img src={`http://127.0.0.1:8000/storage/${task.attachment}`} alt="Lampiran Dosen" style={{ maxWidth: "100%", height: "auto", display: "block", maxHeight: 400, objectFit: "cover" }} />
+                                {/* Tab Content: Attachments */}
+                                {tab === "attachments" && (
+                                    <div style={{ background: "white", borderRadius: 24, padding: "24px 32px", boxShadow: "0 4px 16px rgba(0,0,0,.02)", border: "1px solid #e2e8f0" }}>
+                                        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                                            {task.attachment ? (
+                                                <>
+                                                    {(typeof task.attachment === 'string' && task.attachment.match(/\.(jpeg|jpg|gif|png|webp)$/i)) ? (
+                                                        <div style={{ marginBottom: 16, borderRadius: 16, overflow: "hidden", border: "1px solid #e2e8f0" }}>
+                                                            <img src={`http://127.0.0.1:8000/storage/${task.attachment}`} alt="Lampiran Dosen" style={{ maxWidth: "100%", height: "auto", display: "block", maxHeight: 400, objectFit: "cover" }} />
+                                                        </div>
+                                                    ) : null}
+                                                    <a href={`http://127.0.0.1:8000/storage/${task.attachment}?download=1`} download target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 16, padding: "16px 20px", background: "#f8fafc", borderRadius: 16, textDecoration: "none", color: "inherit", transition: "all .2s", border: "1px solid #e2e8f0" }}
+                                                        onMouseEnter={e => { e.currentTarget.style.background = "white"; e.currentTarget.style.borderColor = "#c7d2fe"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.05)"; }}
+                                                        onMouseLeave={e => { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.boxShadow = "none"; }}>
+                                                        <div style={{ width: 44, height: 44, background: "#eef2ff", color: "#4f46e5", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                                            <FileText size={24} />
+                                                        </div>
+                                                        <div style={{ flex: 1 }}>
+                                                            <p style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: "0 0 4px" }}>{typeof task.attachment === 'string' ? task.attachment.split(/[/\\]/).pop() : "File Lampiran"}</p>
+                                                            <p style={{ fontSize: 12, fontWeight: 600, color: "#64748b", margin: 0 }}>Diberikan oleh Dosen</p>
+                                                        </div>
+                                                        <div style={{ background: "white", border: "1px solid #e2e8f0", color: "#0f172a", display: "flex", padding: 12, borderRadius: 12 }}>
+                                                            <Download size={18} />
+                                                        </div>
+                                                    </a>
+                                                </>
+                                            ) : (
+                                                <div style={{ padding: "40px 20px", textAlign: "center", background: "#f8fafc", borderRadius: 16, border: "1px dashed #cbd5e1" }}>
+                                                    <div style={{ width: 48, height: 48, background: "white", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px", border: "1px solid #e2e8f0" }}>
+                                                        <Paperclip size={24} color="#94a3b8" />
+                                                    </div>
+                                                    <p style={{ fontSize: 14, color: "#64748b", fontWeight: 600, margin: 0 }}>Tidak ada lampiran dari dosen untuk tugas ini.</p>
                                                 </div>
-                                            ) : null}
-                                            <a href={`http://127.0.0.1:8000/storage/${task.attachment}?download=1`} download target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 16, padding: "16px 20px", background: "#f8fafc", borderRadius: 16, textDecoration: "none", color: "inherit", transition: "all .2s", border: "1px solid #e2e8f0" }}
-                                                onMouseEnter={e => { e.currentTarget.style.background = "white"; e.currentTarget.style.borderColor = "#c7d2fe"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.05)"; }}
-                                                onMouseLeave={e => { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.boxShadow = "none"; }}>
-                                                <div style={{ width: 44, height: 44, background: "#eef2ff", color: "#4f46e5", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                                                    <FileText size={24} />
-                                                </div>
-                                                <div style={{ flex: 1 }}>
-                                                    <p style={{ fontSize: 15, fontWeight: 800, color: "#0f172a", margin: "0 0 4px" }}>{typeof task.attachment === 'string' ? task.attachment.split(/[/\\]/).pop() : "File Lampiran"}</p>
-                                                    <p style={{ fontSize: 12, fontWeight: 600, color: "#64748b", margin: 0 }}>Diberikan oleh Dosen</p>
-                                                </div>
-                                                <div style={{ background: "white", border: "1px solid #e2e8f0", color: "#0f172a", display: "flex", padding: 12, borderRadius: 12 }}>
-                                                    <Download size={18} />
-                                                </div>
-                                            </a>
-                                        </>
-                                    ) : (
-                                        <div style={{ padding: "40px 20px", textAlign: "center", background: "#f8fafc", borderRadius: 16, border: "1px dashed #cbd5e1" }}>
-                                            <div style={{ width: 48, height: 48, background: "white", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px", border: "1px solid #e2e8f0" }}>
-                                                <Paperclip size={24} color="#94a3b8" />
-                                            </div>
-                                            <p style={{ fontSize: 14, color: "#64748b", fontWeight: 600, margin: 0 }}>Tidak ada lampiran dari dosen untuk tugas ini.</p>
+                                            )}
                                         </div>
-                                    )}
-                                </div>
-                            </div>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
 
