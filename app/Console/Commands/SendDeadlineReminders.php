@@ -39,6 +39,7 @@ class SendDeadlineReminders extends Command
         }
 
         $count = 0;
+        $currentHour = (int) $now->format('H');
 
         foreach ($tasks as $task) {
             $deadlineStr = is_string($task->deadline) ? $task->deadline : $task->deadline->format('Y-m-d');
@@ -46,31 +47,51 @@ class SendDeadlineReminders extends Command
             $hoursUntilDeadline = $now->diffInMinutes($deadlineDateTime, false) / 60;
 
             if ($hoursUntilDeadline < 0) {
-                continue;
+                continue; // Skip past deadlines
             }
 
             $daysUntilDeadline = $now->copy()->startOfDay()->diffInDays($deadlineDateTime->copy()->startOfDay(), false);
-            $currentHour = (int) $now->format('H');
 
             $remindersToSend = [];
 
-            if ($daysUntilDeadline === 14 && $currentHour === 8) $remindersToSend[] = ['key' => '14d_08', 'label' => '2 minggu lagi'];
-            if ($daysUntilDeadline === 14 && $currentHour === 20) $remindersToSend[] = ['key' => '14d_20', 'label' => '2 minggu lagi'];
-            if ($daysUntilDeadline === 7 && $currentHour === 8) $remindersToSend[] = ['key' => '7d_08', 'label' => '1 minggu lagi'];
-            if ($daysUntilDeadline === 7 && $currentHour === 20) $remindersToSend[] = ['key' => '7d_20', 'label' => '1 minggu lagi'];
+            // ── 1. H-14: 1× jam 8 malam ──
+            if ($daysUntilDeadline === 14 && $currentHour === 20) {
+                $remindersToSend[] = ['key' => '14d', 'label' => '2 minggu lagi'];
+            }
 
-            if ($daysUntilDeadline === 3 && $currentHour === 8) $remindersToSend[] = ['key' => '3d_08', 'label' => '3 hari lagi'];
-            if ($daysUntilDeadline === 3 && $currentHour === 20) $remindersToSend[] = ['key' => '3d_20', 'label' => '3 hari lagi'];
-            if ($daysUntilDeadline === 2 && $currentHour === 8) $remindersToSend[] = ['key' => '2d_08', 'label' => '2 hari lagi'];
-            if ($daysUntilDeadline === 2 && $currentHour === 20) $remindersToSend[] = ['key' => '2d_20', 'label' => '2 hari lagi'];
-            if ($daysUntilDeadline === 1 && $currentHour === 8) $remindersToSend[] = ['key' => '1d_08', 'label' => 'besok'];
-            if ($daysUntilDeadline === 1 && $currentHour === 20) $remindersToSend[] = ['key' => '1d_20', 'label' => 'besok'];
+            // ── 2. H-7: 1× jam 8 malam ──
+            if ($daysUntilDeadline === 7 && $currentHour === 20) {
+                $remindersToSend[] = ['key' => '7d', 'label' => '1 minggu lagi'];
+            }
 
+            // ── 3. H-3: 2× jam 8 pagi dan 8 malam ──
+            if ($daysUntilDeadline === 3 && $currentHour === 8) {
+                $remindersToSend[] = ['key' => '3d_08', 'label' => '3 hari lagi'];
+            }
+            if ($daysUntilDeadline === 3 && $currentHour === 20) {
+                $remindersToSend[] = ['key' => '3d_20', 'label' => '3 hari lagi'];
+            }
+
+            // ── 4. H-2: 2× jam 8 pagi dan 8 malam ──
+            if ($daysUntilDeadline === 2 && $currentHour === 8) {
+                $remindersToSend[] = ['key' => '2d_08', 'label' => '2 hari lagi'];
+            }
+            if ($daysUntilDeadline === 2 && $currentHour === 20) {
+                $remindersToSend[] = ['key' => '2d_20', 'label' => '2 hari lagi'];
+            }
+
+            // ── 5. H-1: 2× jam 8 pagi dan 8 malam ──
+            if ($daysUntilDeadline === 1 && $currentHour === 8) {
+                $remindersToSend[] = ['key' => '1d_08', 'label' => 'besok'];
+            }
+            if ($daysUntilDeadline === 1 && $currentHour === 20) {
+                $remindersToSend[] = ['key' => '1d_20', 'label' => 'besok'];
+            }
+
+            // ── 6. HOUR-BASED: 12h, 3h, 1h (window ±30 menit) ──
             $hourTriggers = [
                 ['hours' => 12, 'key' => '12h', 'label' => '12 jam lagi'],
-                ['hours' => 7,  'key' => '7h',  'label' => '7 jam lagi'],
                 ['hours' => 3,  'key' => '3h',  'label' => '3 jam lagi'],
-                ['hours' => 2,  'key' => '2h',  'label' => '2 jam lagi'],
                 ['hours' => 1,  'key' => '1h',  'label' => '1 jam lagi'],
             ];
 
@@ -86,6 +107,7 @@ class SendDeadlineReminders extends Command
                 continue;
             }
 
+            // Get students with pending submissions
             $submissions = Submission::with('user')
                 ->where('task_id', $task->id_task)
                 ->where('status', 'pending')
@@ -98,6 +120,7 @@ class SendDeadlineReminders extends Command
                 }
 
                 foreach ($remindersToSend as $reminder) {
+                    // Check if already sent (prevent duplicates)
                     $alreadySent = NotificationLog::where('task_id', $task->id_task)
                         ->where('user_id', $user->id)
                         ->where('reminder_key', $reminder['key'])
