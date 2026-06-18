@@ -16,6 +16,14 @@ const messaging = typeof window !== 'undefined' ? getMessaging(app) : null;
 
 export const requestForToken = async () => {
   try {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        console.warn('Permission not granted for Notification');
+        return null;
+      }
+    }
+
     const currentToken = await getToken(messaging, { 
         vapidKey: "BAENz_P3Gjqpv9Pt7ADVwdJeeak6PpdkLuzN9UUepeK8grmXgXoQtoKI9VdjNI3eauzqcZboW4ZJqhppux3zKoM" 
     });
