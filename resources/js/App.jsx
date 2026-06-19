@@ -27,6 +27,7 @@ import MahasiswaDetailTask from "./pages/mahasiswa/DetailTask";
 import MahasiswaPersonalDetail from "./pages/mahasiswa/PersonalTaskDetail";
 import MahasiswaCalendar from "./pages/mahasiswa/CalendarPage";
 import MahasiswaProfile from "./pages/mahasiswa/Profile";
+import MahasiswaSettings from "./pages/mahasiswa/Settings";
 
 // ─── Dosen Pages ──────────────────────────────────────────────────────────────
 import DosenDashboard from "./pages/dosen/Dashboard";
@@ -77,6 +78,7 @@ function App() {
             <Route path="/mahasiswa/tasks/mandiri" element={<ProtectedRoute allowedRole="mahasiswa"><MahasiswaPersonalDetail /></ProtectedRoute>} />
             <Route path="/mahasiswa/calendar" element={<ProtectedRoute allowedRole="mahasiswa"><MahasiswaCalendar /></ProtectedRoute>} />
             <Route path="/mahasiswa/profile" element={<ProtectedRoute allowedRole="mahasiswa"><MahasiswaProfile /></ProtectedRoute>} />
+            <Route path="/mahasiswa/settings" element={<ProtectedRoute allowedRole="mahasiswa"><MahasiswaSettings /></ProtectedRoute>} />
 
             {/* ── Dosen Routes ── */}
             <Route path="/dosen" element={<ProtectedRoute allowedRole="dosen"><DosenDashboard /></ProtectedRoute>} />

@@ -6,7 +6,7 @@ import {
     Search, Plus, SlidersHorizontal, ChevronDown, X,
     AlertTriangle, BookOpen, Users, Clock, CheckCircle2,
     Circle, MoreHorizontal, Flame, Calendar, Tag, QrCode,
-    ArrowUpRight, Trash2, Edit3, Target, Zap, TrendingUp, BookMarked
+    ArrowUpRight, Trash2, Edit3, Target, Zap, TrendingUp, BookMarked, Star
 } from "lucide-react";
 import axiosClient from "../../axiosClient";
 
@@ -210,7 +210,7 @@ function JoinTaskModal({ onClose, onJoin }) {
 }
 
 // ─── Task Card ────────────────────────────────────────────────────────────────
-function TaskCard({ task, onToggle, onDelete, onClick, onEdit }) {
+function TaskCard({ task, onToggle, onDelete, onClick, onEdit, onQuickAccess, isQuickAccess }) {
     const tc = TYPE_CFG[task.isPersonal ? "personal" : (task.type || "assignment")] || TYPE_CFG.assignment;
     const pc = task.isPersonal ? (PRI_CFG[task.priority] || PRI_CFG.medium) : null;
     const dl = daysLeft(task.due, task.dueTime);
@@ -287,12 +287,21 @@ function TaskCard({ task, onToggle, onDelete, onClick, onEdit }) {
             </div>
 
             {/* Actions Menu */}
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, flexShrink: 0, position: "relative" }}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, flexShrink: 0, position: "relative" }}>
+                {!done && onQuickAccess && (
+                    <button onClick={e => { e.stopPropagation(); onQuickAccess(task); }}
+                        style={{ background: isQuickAccess ? "#fffbeb" : "white", border: `1px solid ${isQuickAccess ? "#fcd34d" : "#e2e8f0"}`, cursor: "pointer", color: isQuickAccess ? "#f59e0b" : "#64748b", padding: "8px", borderRadius: 12, transition: "all .2s", display: "flex", boxShadow: "0 2px 4px rgba(0,0,0,0.02)" }}
+                        onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.05)"; }}
+                        onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; }}
+                        title={isQuickAccess ? "Hapus dari Akses Cepat" : "Tambah ke Akses Cepat"}>
+                        <Star size={18} fill={isQuickAccess ? "#f59e0b" : "transparent"} color={isQuickAccess ? "#f59e0b" : "currentColor"} />
+                    </button>
+                )}
                 <button onClick={e => { e.stopPropagation(); setMenu(v => !v); }}
                     style={{ background: "white", border: "1px solid #e2e8f0", cursor: "pointer", color: "#64748b", padding: "8px", borderRadius: 12, transition: "all .2s", display: "flex", boxShadow: "0 2px 4px rgba(0,0,0,0.02)" }}
                     onMouseEnter={e => { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.borderColor = "#cbd5e1"; e.currentTarget.style.color = "#0f172a"; }}
                     onMouseLeave={e => { e.currentTarget.style.background = "white"; e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.color = "#64748b"; }}>
-                    <MoreHorizontal size={20} />
+                    <MoreHorizontal size={18} />
                 </button>
 
                 {menuOpen && (
@@ -348,6 +357,25 @@ export default function Tasks() {
     const [editPersonal, setEditPersonal] = useState(null);
     const [fType, setFType] = useState("all");
     const [sort, setSort] = useState("due");
+    
+    const [quickAccess, setQuickAccess] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('quickAccessTasks') || "[]"); } catch { return []; }
+    });
+
+    const toggleQuickAccess = (task) => {
+        setQuickAccess(prev => {
+            const exists = prev.find(t => t.id === task.id);
+            let next;
+            if (exists) {
+                next = prev.filter(t => t.id !== task.id);
+            } else {
+                next = [...prev, { id: task.id, name: task.title, isPersonal: task.isPersonal }];
+            }
+            localStorage.setItem('quickAccessTasks', JSON.stringify(next));
+            window.dispatchEvent(new Event('quickAccessUpdated'));
+            return next;
+        });
+    };
 
     // Sync personal tasks to localStorage
     useEffect(() => {
@@ -610,6 +638,8 @@ export default function Tasks() {
                                     ? navigate("/mahasiswa/tasks/mandiri", { state: { taskId: t.id } })
                                     : navigate("/mahasiswa/tasks/detail",  { state: { taskId: t.id } })
                                 }
+                                onQuickAccess={toggleQuickAccess}
+                                isQuickAccess={quickAccess.some(q => q.id === task.id)}
                             />
                         ))
                     }
