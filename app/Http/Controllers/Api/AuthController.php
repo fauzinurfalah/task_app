@@ -90,4 +90,106 @@ class AuthController extends Controller
             'message' => 'FCM Token saved successfully'
         ]);
     }
+
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email,' . $user->id,
+            'nim' => 'nullable|string|max:50',
+            'foto_profil' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120',
+        ]);
+
+        $user->name = $request->name;
+        $user->email = $request->email;
+        if ($request->has('nim')) {
+            $user->nim = $request->nim;
+        }
+        // Also support 'nip' for dosen
+        if ($request->has('nip')) {
+            $user->nim = $request->nip;
+        }
+
+        if ($request->hasFile('foto_profil')) {
+            $file = $request->file('foto_profil');
+            
+            // Hapus foto lama jika ada
+            if ($user->foto_profil && \Illuminate\Support\Facades\Storage::disk('public')->exists($user->foto_profil)) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($user->foto_profil);
+            }
+
+            // Kompresi dan simpan
+            $filename = uniqid() . '_' . time() . '.jpg';
+            $path = 'profiles/' . $filename;
+            
+            // Buat direktori jika belum ada
+            if (!\Illuminate\Support\Facades\Storage::disk('public')->exists('profiles')) {
+                \Illuminate\Support\Facades\Storage::disk('public')->makeDirectory('profiles');
+            }
+
+            $absolutePath = storage_path('app/public/' . $path);
+            
+            // Kompresi menggunakan native GD (menjadi format JPEG terkompresi)
+            $this->compressImage($file->getRealPath(), $absolutePath, 65);
+
+            $user->foto_profil = $path;
+        }
+
+        $user->save();
+
+        return response()->json([
+            'message' => 'Profile updated successfully',
+            'user' => $user,
+        ]);
+    }
+
+    private function compressImage($source, $destination, $quality)
+    {
+        $info = getimagesize($source);
+
+        if ($info['mime'] == 'image/jpeg') 
+            $image = imagecreatefromjpeg($source);
+        elseif ($info['mime'] == 'image/gif') 
+            $image = imagecreatefromgif($source);
+        elseif ($info['mime'] == 'image/png') 
+            $image = imagecreatefrompng($source);
+        else
+            return false;
+
+        // Cek orientasi EXIF untuk memutar gambar jika perlu (berguna jika foto dari HP)
+        if (function_exists('exif_read_data')) {
+            $exif = @exif_read_data($source);
+            if ($exif && isset($exif['Orientation'])) {
+                $orientation = $exif['Orientation'];
+                if ($orientation == 3) {
+                    $image = imagerotate($image, 180, 0);
+                } elseif ($orientation == 6) {
+                    $image = imagerotate($image, -90, 0);
+                } elseif ($orientation == 8) {
+                    $image = imagerotate($image, 90, 0);
+                }
+            }
+        }
+
+        // Simpan sebagai jpeg dengan kualitas kompresi
+        imagejpeg($image, $destination, $quality);
+        imagedestroy($image);
+
+        return true;
+    }
+
+    public function getProfileImage($filename)
+    {
+        $path = storage_path('app/public/profiles/' . $filename);
+        if (!file_exists($path)) {
+            abort(404);
+        }
+
+        $file = file_get_contents($path);
+        $type = mime_content_type($path);
+
+        return response($file, 200)->header('Content-Type', $type);
+    }
 }

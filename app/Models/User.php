@@ -10,12 +10,19 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password', 'nim', 'role'])]
+#[Fillable(['name', 'email', 'password', 'nim', 'role', 'foto_profil'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, HasApiTokens;
+
+    protected $appends = ['foto_profil_url'];
+
+    public function getFotoProfilUrlAttribute()
+    {
+        return $this->foto_profil ? url('api/' . $this->foto_profil) : null;
+    }
 
     /**
      * Get the attributes that should be cast.

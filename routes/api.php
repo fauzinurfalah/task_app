@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\MahasiswaController;
 // ─── Auth (Public) ────────────────────────────────────────────────────────────
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::get('/profiles/{filename}', [AuthController::class, 'getProfileImage']);
 
 // ─── Protected Routes (Sanctum) ───────────────────────────────────────────────
 Route::middleware('auth:sanctum')->group(function () {
@@ -16,6 +17,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/fcm-token', [AuthController::class, 'saveToken']);
+    Route::post('/profile', [AuthController::class, 'updateProfile']);
 
     // ─── Dosen ────────────────────────────────────────────────────────────────
     Route::prefix('dosen')->group(function () {

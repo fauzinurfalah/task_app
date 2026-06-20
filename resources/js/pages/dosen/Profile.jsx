@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Sidebar from "../../components/Sidebar";
-import { User, Mail, Hash, Edit3, Save, X, LogOut, Briefcase, CheckCircle } from "lucide-react";
+import { User, Mail, Hash, Edit3, Save, X, LogOut, Briefcase, CheckCircle, Camera } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import axiosClient from "../../axiosClient";
 
 export default function Profile() {
     const navigate = useNavigate();
@@ -10,6 +11,9 @@ export default function Profile() {
     const [isSaving, setIsSaving] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
     const [form, setForm] = useState({ name: "-", email: "-", nip: "-" });
+    const [photoPreview, setPhotoPreview] = useState(null);
+    const [photoFile, setPhotoFile] = useState(null);
+    const fileRef = useRef(null);
 
     useEffect(() => {
         const u = JSON.parse(localStorage.getItem('user') || '{}');
@@ -20,14 +24,42 @@ export default function Profile() {
         };
         setProfile(p);
         setForm(p);
+        setPhotoPreview(u.foto_profil_url || null);
     }, []);
 
-    function handleSave() {
+    function handlePhotoChange(e) {
+        const file = e.target.files[0];
+        if (file) {
+            setPhotoFile(file);
+            setPhotoPreview(URL.createObjectURL(file));
+        }
+    }
+
+    async function handleSave() {
         setIsSaving(true);
-        setTimeout(() => {
-            setProfile(form);
-            const u = JSON.parse(localStorage.getItem('user') || '{}');
-            localStorage.setItem('user', JSON.stringify({ ...u, ...form, nim: form.nip })); // Synchronize for dummy login
+
+        const formData = new FormData();
+        formData.append("name", form.name);
+        formData.append("email", form.email);
+        formData.append("nip", form.nip);
+        if (photoFile) {
+            formData.append("foto_profil", photoFile);
+        }
+
+        try {
+            const { data } = await axiosClient.post('/profile', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            const updatedUser = data.user;
+            setProfile({
+                name: updatedUser.name,
+                email: updatedUser.email,
+                nip: updatedUser.nim || "-", // API returns nim for all users
+            });
+            localStorage.setItem('user', JSON.stringify({ ...updatedUser, nip: updatedUser.nim })); // Sync nip for dummy logic
+            setPhotoPreview(updatedUser.foto_profil_url || null);
+            setPhotoFile(null);
             
             setIsSaving(false);
             setIsSuccess(true);
@@ -36,11 +68,18 @@ export default function Profile() {
                 setEditing(false);
                 setTimeout(() => setIsSuccess(false), 600);
             }, 800);
-        }, 500);
+        } catch (error) {
+            console.error("Gagal menyimpan profil", error);
+            setIsSaving(false);
+            alert("Gagal menyimpan profil. Pastikan format email benar dan ukuran gambar maksimal 5MB.");
+        }
     }
 
     function handleCancel() {
         setForm(profile); // Reset form
+        const u = JSON.parse(localStorage.getItem('user') || '{}');
+        setPhotoPreview(u.foto_profil_url || null);
+        setPhotoFile(null);
         setEditing(false);
     }
 
@@ -127,11 +166,22 @@ export default function Profile() {
                         <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 120, background: "linear-gradient(135deg, #ea580c 0%, #f97316 100%)", zIndex: 0 }} />
                         
                         <div style={{ position: "relative", zIndex: 1 }}>
-                            <div style={{ width: 110, height: 110, borderRadius: 32, background: "white", padding: 6, margin: "0 auto 20px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                <div style={{ width: "100%", height: "100%", borderRadius: 26, background: "linear-gradient(135deg, #ea580c 0%, #f97316 100%)", color: "white", fontSize: 36, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                    {initials}
+                            <div style={{ width: 110, height: 110, borderRadius: 32, background: "white", padding: 6, margin: "0 auto 20px", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+                                <div onClick={() => editing && fileRef.current?.click()} style={{ width: "100%", height: "100%", borderRadius: 26, background: photoPreview ? `url('${photoPreview}') center/cover no-repeat` : "linear-gradient(135deg, #ea580c 0%, #f97316 100%)", color: "white", fontSize: 36, fontWeight: 900, display: "flex", alignItems: "center", justifyContent: "center", cursor: editing ? "pointer" : "default", position: "relative", overflow: "hidden" }}>
+                                    {!photoPreview && initials}
+                                    {editing && (
+                                        <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(2px)" }}>
+                                            <Camera size={28} color="white" />
+                                        </div>
+                                    )}
                                 </div>
+                                <input type="file" ref={fileRef} onChange={handlePhotoChange} accept="image/*" style={{ display: "none" }} />
                             </div>
+                            {editing && (
+                                <button onClick={() => fileRef.current?.click()} style={{ background: "transparent", border: "none", color: "#ea580c", fontSize: 13, fontWeight: 800, cursor: "pointer", marginBottom: 16, display: "flex", alignItems: "center", gap: 6, margin: "-10px auto 20px" }}>
+                                    <Camera size={16} /> Ganti Foto Profil
+                                </button>
+                            )}
                             
                             <h1 style={{ fontSize: 26, fontWeight: 900, color: "#0f172a", margin: "0 0 6px", letterSpacing: "-0.5px" }}>{profile.name}</h1>
                             <p style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 800, color: "#ea580c", background: "#fff7ed", padding: "6px 12px", borderRadius: 10, margin: "0 0 32px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
