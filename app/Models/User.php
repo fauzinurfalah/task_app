@@ -10,7 +10,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password', 'nim', 'role', 'foto_profil'])]
+#[Fillable(['name', 'email', 'password', 'nim', 'role', 'foto_profil', 'fcm_token', 'quick_access'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -34,6 +34,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'quick_access' => 'array',
         ];
     }
 
@@ -45,5 +46,10 @@ class User extends Authenticatable
     public function courses()
     {
         return $this->belongsToMany(MataKuliah::class, 'course_user', 'user_id', 'id_matkul');
+    }
+
+    public function fcmTokens()
+    {
+        return $this->hasMany(FcmToken::class);
     }
 }

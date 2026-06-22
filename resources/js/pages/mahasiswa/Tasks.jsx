@@ -25,8 +25,6 @@ const PRI_CFG = {
     low:    { bg: "#f0fdf4", color: "#059669", dot: "#10b981", label: "Low",    rank: 3 },
 };
 
-const LS_KEY = "mahasiswa_personal_tasks";
-
 function daysLeft(due, time) {
     const d = new Date(`${due}T${time}`);
     const now = new Date();
@@ -141,7 +139,7 @@ function PersonalTaskModal({ onClose, onAdd, editTask }) {
                     </button>
                     <button onClick={() => {
                         if (!f.title.trim() || !f.due) return;
-                        onAdd({ ...f, id: editTask?.id || `personal_${Date.now()}`, status: "pending", progress: 0, tags: [], isPersonal: true });
+                        onAdd({ ...f, status: f.status || "pending", progress: f.progress || 0, tags: [], isPersonal: true });
                         onClose();
                     }} style={{ flex: 2, padding: "14px 20px", borderRadius: 16, border: "none", background: "linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)", color: "white", fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 8px 20px rgba(124,58,237,.25)", transition: "all 0.2s" }} onMouseEnter={e => e.currentTarget.style.transform = "translateY(-2px)"} onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}>
                         {editTask ? "Simpan Perubahan" : "Buat Tugas Mandiri"}
@@ -345,9 +343,7 @@ function TaskCard({ task, onToggle, onDelete, onClick, onEdit, onQuickAccess, is
 export default function Tasks() {
     const navigate = useNavigate();
     const [tasks, setTasks] = useState([]);
-    const [personalTasks, setPersonalTasks] = useState(() => {
-        try { return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); } catch { return []; }
-    });
+    const [personalTasks, setPersonalTasks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [tab, setTab] = useState("all");
@@ -373,61 +369,86 @@ export default function Tasks() {
             }
             localStorage.setItem('quickAccessTasks', JSON.stringify(next));
             window.dispatchEvent(new Event('quickAccessUpdated'));
+            
+            axiosClient.post('/quick-access', { quick_access: next }).catch(console.error);
             return next;
         });
     };
 
-    // Sync personal tasks to localStorage
-    useEffect(() => {
-        localStorage.setItem(LS_KEY, JSON.stringify(personalTasks));
-    }, [personalTasks]);
+    const fetchTasks = () => {
+        setLoading(true);
+        Promise.all([
+            axiosClient.get('/mahasiswa/tasks'),
+            axiosClient.get('/mahasiswa/personal-tasks')
+        ]).then(([tasksRes, personalRes]) => {
+            const mapped = tasksRes.data.map(item => ({
+                id: item.task.id_task,
+                submissionId: item.submission?.id || null,
+                title: item.task.nama_tugas || "-",
+                course: item.task.nama_matkul || "Umum",
+                courseCode: item.task.kode_tugas || "-",
+                type: "assignment",
+                isPersonal: false,
+                status: item.status === "submitted" ? "completed" :
+                        item.status === "late" ? "completed" :
+                        item.status === "in_progress" ? "in_progress" : "pending",
+                due: item.task.deadline ? item.task.deadline.substring(0, 10) : "",
+                dueTime: item.task.jam || "23:59",
+                progress: item.status === "submitted" || item.status === "late" ? 100 : 0,
+                tags: [],
+                description: item.task.deskripsi || "",
+            }));
+            setTasks(mapped);
+            
+            const personalMapped = personalRes.data.map(t => ({
+                ...t,
+                isPersonal: true,
+                type: "personal"
+            }));
+            setPersonalTasks(personalMapped);
+        }).catch(err => console.error(err))
+          .finally(() => setLoading(false));
+    };
 
     useEffect(() => {
-        axiosClient.get('/mahasiswa/tasks')
-            .then(({ data }) => {
-                const mapped = data.map(item => ({
-                    id: item.task.id_task,
-                    submissionId: item.submission?.id || null,
-                    title: item.task.nama_tugas || "-",
-                    course: item.task.nama_matkul || "Umum",
-                    courseCode: item.task.kode_tugas || "-",
-                    type: "assignment",
-                    isPersonal: false,
-                    status: item.status === "submitted" ? "completed" :
-                            item.status === "late" ? "completed" :
-                            item.status === "in_progress" ? "in_progress" : "pending",
-                    due: item.task.deadline ? item.task.deadline.substring(0, 10) : "",
-                    dueTime: item.task.jam || "23:59",
-                    progress: item.status === "submitted" || item.status === "late" ? 100 : 0,
-                    tags: [],
-                    description: item.task.deskripsi || "",
-                }));
-                setTasks(mapped);
-            })
-            .catch(err => console.error(err))
-            .finally(() => setLoading(false));
+        fetchTasks();
     }, []);
 
     // Merge API tasks + personal tasks
     const allTasks = useMemo(() => [
         ...tasks,
-        ...personalTasks.map(t => ({ ...t, isPersonal: true })),
+        ...personalTasks,
     ], [tasks, personalTasks]);
 
     function savePersonalTask(task) {
-        setPersonalTasks(prev => {
-            const exists = prev.find(t => t.id === task.id);
-            if (exists) return prev.map(t => t.id === task.id ? task : t);
-            return [task, ...prev];
-        });
+        if (task.id) {
+            axiosClient.put(`/mahasiswa/personal-tasks/${task.id}`, task)
+                .then(res => setPersonalTasks(prev => prev.map(t => t.id === task.id ? { ...res.data, isPersonal: true, type: "personal" } : t)))
+                .catch(console.error);
+        } else {
+            axiosClient.post('/mahasiswa/personal-tasks', task)
+                .then(res => setPersonalTasks(prev => [{ ...res.data, isPersonal: true, type: "personal" }, ...prev]))
+                .catch(console.error);
+        }
     }
+    
     function deletePersonalTask(id) {
-        setPersonalTasks(prev => prev.filter(t => t.id !== id));
+        if(window.confirm("Apakah Anda yakin ingin menghapus tugas mandiri ini?")) {
+            axiosClient.delete(`/mahasiswa/personal-tasks/${id}`)
+                .then(() => setPersonalTasks(prev => prev.filter(t => t.id !== id)))
+                .catch(console.error);
+        }
     }
+    
     function togglePersonalTask(id) {
-        setPersonalTasks(prev => prev.map(t =>
-            t.id === id ? { ...t, status: t.status === "completed" ? "pending" : "completed", progress: t.status === "completed" ? 0 : 100 } : t
-        ));
+        const task = personalTasks.find(t => t.id === id);
+        if (!task) return;
+        const newStatus = task.status === "completed" ? "pending" : "completed";
+        const newProgress = newStatus === "completed" ? 100 : 0;
+        
+        axiosClient.put(`/mahasiswa/personal-tasks/${id}`, { status: newStatus, progress: newProgress })
+            .then(res => setPersonalTasks(prev => prev.map(t => t.id === id ? { ...res.data, isPersonal: true, type: "personal" } : t)))
+            .catch(console.error);
     }
 
 

@@ -59,10 +59,21 @@ export default function Sidebar({ role = "mahasiswa" }) {
         const loadQuickAccess = () => {
             const stored = localStorage.getItem('quickAccessTasks');
             if (stored) setQuickAccess(JSON.parse(stored));
+            
+            import('../axiosClient').then(({ default: axiosClient }) => {
+                axiosClient.get('/me').then(res => {
+                    const qa = res.data.user?.quick_access || [];
+                    setQuickAccess(qa);
+                    localStorage.setItem('quickAccessTasks', JSON.stringify(qa));
+                }).catch(() => {});
+            });
         };
         loadQuickAccess();
-        window.addEventListener('quickAccessUpdated', loadQuickAccess);
-        return () => window.removeEventListener('quickAccessUpdated', loadQuickAccess);
+        window.addEventListener('quickAccessUpdated', () => {
+            const stored = localStorage.getItem('quickAccessTasks');
+            if (stored) setQuickAccess(JSON.parse(stored));
+        });
+        return () => window.removeEventListener('quickAccessUpdated', () => {});
     }, []);
 
     // Close popup when clicking outside
@@ -81,8 +92,24 @@ export default function Sidebar({ role = "mahasiswa" }) {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    const handleLogout = () => {
-        // Clear auth and redirect
+    const handleLogout = async () => {
+        try {
+            // 1. Hapus FCM token device ini dari backend agar tidak dikirim notif setelah logout
+            const { getToken } = await import('firebase/messaging');
+            const { messaging } = await import('../firebase');
+            if (messaging) {
+                const fcmToken = await getToken(messaging, {
+                    vapidKey: "BAENz_P3Gjqpv9Pt7ADVwdJeeak6PpdkLuzN9UUepeK8grmXgXoQtoKI9VdjNI3eauzqcZboW4ZJqhppux3zKoM"
+                }).catch(() => null);
+                if (fcmToken) {
+                    await import('../axiosClient').then(({ default: axiosClient }) =>
+                        axiosClient.delete('/fcm-token', { data: { fcm_token: fcmToken } })
+                    ).catch(() => {});
+                }
+            }
+        } catch (_) {}
+
+        // 2. Clear auth state
         localStorage.clear();
         navigate("/login");
     };

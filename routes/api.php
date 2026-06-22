@@ -17,7 +17,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/fcm-token', [AuthController::class, 'saveToken']);
+    Route::delete('/fcm-token', [AuthController::class, 'removeToken']);
     Route::post('/profile', [AuthController::class, 'updateProfile']);
+    Route::post('/quick-access', [AuthController::class, 'updateQuickAccess']);
 
     // ─── Dosen ────────────────────────────────────────────────────────────────
     Route::prefix('dosen')->group(function () {
@@ -43,5 +45,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/tasks/{id}', [MahasiswaController::class, 'showTask']);
         Route::post('/tasks/{id}/submit', [MahasiswaController::class, 'submitTask']);
         Route::put('/tasks/{id}/status', [MahasiswaController::class, 'updateStatus']);
+
+        // Personal Tasks
+        Route::get('/personal-tasks', [\App\Http\Controllers\Api\PersonalTaskController::class, 'index']);
+        Route::post('/personal-tasks', [\App\Http\Controllers\Api\PersonalTaskController::class, 'store']);
+        Route::get('/personal-tasks/{id}', [\App\Http\Controllers\Api\PersonalTaskController::class, 'show']);
+        Route::put('/personal-tasks/{id}', [\App\Http\Controllers\Api\PersonalTaskController::class, 'update']);
+        Route::delete('/personal-tasks/{id}', [\App\Http\Controllers\Api\PersonalTaskController::class, 'destroy']);
     });
 });

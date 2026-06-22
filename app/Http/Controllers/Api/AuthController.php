@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Models\FcmToken;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
@@ -83,11 +84,30 @@ class AuthController extends Controller
         ]);
 
         $user = $request->user();
-        $user->fcm_token = $request->fcm_token;
-        $user->save();
+
+        // Upsert: jika token sudah ada, abaikan. Jika belum, simpan baru.
+        FcmToken::firstOrCreate([
+            'user_id' => $user->id,
+            'token'   => $request->fcm_token,
+        ]);
 
         return response()->json([
             'message' => 'FCM Token saved successfully'
+        ]);
+    }
+
+    public function removeToken(Request $request)
+    {
+        $request->validate([
+            'fcm_token' => 'required|string',
+        ]);
+
+        FcmToken::where('user_id', $request->user()->id)
+            ->where('token', $request->fcm_token)
+            ->delete();
+
+        return response()->json([
+            'message' => 'FCM Token removed'
         ]);
     }
 
@@ -191,5 +211,22 @@ class AuthController extends Controller
         $type = mime_content_type($path);
 
         return response($file, 200)->header('Content-Type', $type);
+    }
+
+    public function updateQuickAccess(Request $request)
+    {
+        $request->validate([
+            'quick_access' => 'nullable|array',
+        ]);
+
+        $user = $request->user();
+        $user->update([
+            'quick_access' => $request->quick_access ?? []
+        ]);
+
+        return response()->json([
+            'message' => 'Quick access updated',
+            'quick_access' => $user->quick_access
+        ]);
     }
 }

@@ -172,19 +172,31 @@ export default function MahasiswaCalendarPage() {
     useEffect(() => {
         const timer = setInterval(() => setNow(new Date()), 1000);
         
-        axiosClient.get('/mahasiswa/tasks')
-            .then(({ data }) => {
-                const mapped = data.map(item => ({
-                    id: item.task.id_task,
-                    label: item.task.nama_tugas || "-",
-                    type: "assignment",
-                    date: item.task.deadline ? item.task.deadline.substring(0, 10) : "",
-                    time: item.task.jam || "23:59",
-                    location: item.task.mata_kuliah?.nama_matkul || "Umum",
-                })).filter(e => e.date);
-                setEvents(mapped);
-            })
-            .catch(err => console.error(err));
+        Promise.all([
+            axiosClient.get('/mahasiswa/tasks'),
+            axiosClient.get('/mahasiswa/personal-tasks')
+        ]).then(([tasksRes, personalRes]) => {
+            const mappedTasks = tasksRes.data.map(item => ({
+                id: item.task.id_task,
+                label: item.task.nama_tugas || "-",
+                type: "assignment",
+                date: item.task.deadline ? item.task.deadline.substring(0, 10) : "",
+                time: item.task.jam || "23:59",
+                location: item.task.mata_kuliah?.nama_matkul || "Umum",
+            })).filter(e => e.date);
+
+            const mappedPersonal = personalRes.data.map(t => ({
+                id: `personal_${t.id}`,
+                label: t.title || "-",
+                type: "assignment",
+                date: t.due ? t.due.substring(0, 10) : "",
+                time: t.dueTime || "23:59",
+                location: t.course || "Mandiri",
+                isPersonal: true
+            })).filter(e => e.date);
+
+            setEvents([...mappedTasks, ...mappedPersonal]);
+        }).catch(err => console.error(err));
 
         return () => clearInterval(timer);
     }, []);

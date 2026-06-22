@@ -6,8 +6,7 @@ import {
     CheckCircle2, Circle, Plus, Trash2, Edit3, Flame,
     BookOpen, X, Save, AlertTriangle, Layers, BarChart2, Tag
 } from "lucide-react";
-
-const LS_KEY = "mahasiswa_personal_tasks";
+import axiosClient from "../../axiosClient";
 
 const PRI_CFG = {
     urgent: { bg: "#fef2f2", color: "#dc2626", dot: "#dc2626", label: "Urgent", border: "#fecaca" },
@@ -118,32 +117,40 @@ export default function PersonalTaskDetail() {
     const [subtasks, setSubs]   = useState([]);
     const [newSub, setNewSub]   = useState("");
     const [showEdit, setEdit]   = useState(false);
+    const [loading, setLoading] = useState(true);
 
-    // Load from localStorage
+    // Fetch from API
     useEffect(() => {
-        const all = JSON.parse(localStorage.getItem(LS_KEY) || "[]");
-        const found = all.find(t => String(t.id) === String(taskId));
-        if (found) {
-            setTask(found);
-            setSubs(found.subtasks || []);
-        }
+        if (!taskId) return;
+        setLoading(true);
+        axiosClient.get(`/mahasiswa/personal-tasks/${taskId}`)
+            .then(res => {
+                setTask(res.data);
+                setSubs(res.data.subtasks || []);
+            })
+            .catch(console.error)
+            .finally(() => setLoading(false));
     }, [taskId]);
 
-    // Persist changes back to localStorage
+    // Persist changes back to API
     function persist(updated) {
-        const all = JSON.parse(localStorage.getItem(LS_KEY) || "[]");
-        const next = all.map(t => String(t.id) === String(taskId) ? updated : t);
-        localStorage.setItem(LS_KEY, JSON.stringify(next));
-        setTask(updated);
+        axiosClient.put(`/mahasiswa/personal-tasks/${taskId}`, updated)
+            .then(res => {
+                setTask(res.data);
+                setSubs(res.data.subtasks || []);
+            })
+            .catch(console.error);
     }
 
     function toggleDone() {
         const updated = { ...task, status: task.status === "completed" ? "pending" : "completed", progress: task.status === "completed" ? 0 : 100, subtasks };
+        setTask(updated); // Optimistic UI
         persist(updated);
     }
 
     function saveTask(edited) {
         const updated = { ...edited, subtasks };
+        setTask(updated); // Optimistic UI
         persist(updated);
     }
 
@@ -164,6 +171,15 @@ export default function PersonalTaskDetail() {
         persist({ ...task, subtasks: next });
         setNewSub("");
     }
+
+    if (loading) return (
+        <div className="app-wrapper">
+            <Sidebar />
+            <main className="main-content" style={{ background: "#f8fafc", padding: "40px 48px", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <div style={{ color: "#64748b", fontSize: 15, fontWeight: 600 }}>Memuat detail tugas mandiri...</div>
+            </main>
+        </div>
+    );
 
     if (!task) return (
         <div className="app-wrapper">
