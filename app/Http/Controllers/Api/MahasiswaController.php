@@ -48,14 +48,17 @@ class MahasiswaController extends Controller
         // Ambil semua submission user ini
         $submissions = Submission::where('user_id', $user->id)->get()->keyBy('task_id');
         
-        // Ambil task yang HANYA sudah di-join oleh user
+        // Ambil task yang sudah di-join oleh user (termasuk tugas mandiri yang otomatis ter-join)
         $taskIds = $submissions->keys();
         $tasks = Task::whereIn('id_task', $taskIds)->orderBy('created_at', 'desc')->get();
 
-        $result = $tasks->map(function ($task) use ($submissions) {
+        $result = $tasks->map(function ($task) use ($submissions, $user) {
             $sub = $submissions->get($task->id_task);
+            $taskData = $task->toArray();
+            // Tandai apakah ini tugas mandiri milik mahasiswa
+            $taskData['is_mandiri'] = $task->user_id === $user->id;
             return [
-                'task' => $task,
+                'task' => $taskData,
                 'submission' => $sub,
                 'status' => $sub ? $sub->status : 'pending',
             ];
@@ -146,6 +149,101 @@ class MahasiswaController extends Controller
         );
 
         return response()->json(['task' => $task]);
+    }
+
+    /**
+     * Buat tugas mandiri (mahasiswa)
+     */
+    public function storeTask(Request $request)
+    {
+        $request->validate([
+            'nama_tugas'  => 'required|string',
+            'nama_matkul' => 'required|string',
+            'deadline'    => 'required|date',
+            'jam'         => 'nullable|string',
+            'deskripsi'   => 'nullable|string',
+            'tags'        => 'nullable|string',
+            'tipe'        => 'nullable|in:individu,kelompok',
+            'prioritas'   => 'nullable|in:rendah,sedang,tinggi',
+        ]);
+
+        $user = $request->user();
+
+        $task = Task::create([
+            'user_id'     => $user->id,
+            'nama_tugas'  => $request->nama_tugas,
+            'nama_matkul' => $request->nama_matkul,
+            'deskripsi'   => $request->deskripsi ?? '',
+            'tags'        => $request->tags ?? '',
+            'deadline'    => $request->deadline,
+            'jam'         => $request->jam ?? '23:59',
+            'tipe'        => $request->tipe ?? 'individu',
+            'prioritas'   => $request->prioritas ?? 'sedang',
+            'status'      => 'active',
+        ]);
+
+        // Otomatis buat submission (assign ke diri sendiri)
+        Submission::create([
+            'task_id' => $task->id_task,
+            'user_id' => $user->id,
+            'status'  => 'pending',
+        ]);
+
+        return response()->json([
+            'message' => 'Tugas mandiri berhasil dibuat',
+            'task'    => $task,
+        ], 201);
+    }
+
+    /**
+     * Update tugas mandiri (hanya pemilik)
+     */
+    public function updateTask(Request $request, $id)
+    {
+        $user = $request->user();
+        $task = Task::where('id_task', $id)->where('user_id', $user->id)->first();
+
+        if (!$task) {
+            return response()->json(['message' => 'Tugas tidak ditemukan atau bukan milik Anda.'], 404);
+        }
+
+        $request->validate([
+            'nama_tugas'  => 'nullable|string',
+            'nama_matkul' => 'nullable|string',
+            'deadline'    => 'nullable|date',
+            'jam'         => 'nullable|string',
+            'deskripsi'   => 'nullable|string',
+            'tags'        => 'nullable|string',
+            'tipe'        => 'nullable|in:individu,kelompok',
+            'prioritas'   => 'nullable|in:rendah,sedang,tinggi',
+        ]);
+
+        $task->update($request->only([
+            'nama_tugas', 'nama_matkul', 'deadline', 'jam',
+            'deskripsi', 'tags', 'tipe', 'prioritas',
+        ]));
+
+        return response()->json([
+            'message' => 'Tugas berhasil diupdate',
+            'task'    => $task,
+        ]);
+    }
+
+    /**
+     * Hapus tugas mandiri (hanya pemilik)
+     */
+    public function deleteTask(Request $request, $id)
+    {
+        $user = $request->user();
+        $task = Task::where('id_task', $id)->where('user_id', $user->id)->first();
+
+        if (!$task) {
+            return response()->json(['message' => 'Tugas tidak ditemukan atau bukan milik Anda.'], 404);
+        }
+
+        $task->delete();
+
+        return response()->json(['message' => 'Tugas mandiri berhasil dihapus']);
     }
 
     public function updateStatus(Request $request, $id)

@@ -39,8 +39,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('mahasiswa')->group(function () {
         Route::get('/dashboard-stats', [MahasiswaController::class, 'dashboardStats']);
         Route::get('/tasks', [MahasiswaController::class, 'tasks']);
+        Route::post('/tasks', [MahasiswaController::class, 'storeTask']);
         Route::post('/tasks/join', [MahasiswaController::class, 'getTaskByCode']);
         Route::get('/tasks/{id}', [MahasiswaController::class, 'showTask']);
+        Route::put('/tasks/{id}', [MahasiswaController::class, 'updateTask']);
+        Route::delete('/tasks/{id}', [MahasiswaController::class, 'deleteTask']);
         Route::post('/tasks/{id}/submit', [MahasiswaController::class, 'submitTask']);
         Route::put('/tasks/{id}/status', [MahasiswaController::class, 'updateStatus']);
     });
