@@ -10,6 +10,7 @@ class Task extends Model
     protected $primaryKey = 'id_task';
 
     protected $fillable = [
+        'user_id',
         'kode_tugas',
         'nama_tugas',
         'nama_matkul',
@@ -35,6 +36,13 @@ class Task extends Model
         ];
     }
 
+    /**
+     * Pemilik tugas (mahasiswa yang membuat tugas mandiri)
+     */
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
 
     public function submissions()
     {
