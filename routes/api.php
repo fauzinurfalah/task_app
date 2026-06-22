@@ -4,11 +4,17 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DosenController;
 use App\Http\Controllers\Api\MahasiswaController;
+use App\Http\Controllers\Api\PasswordResetController;
 
 // ─── Auth (Public) ────────────────────────────────────────────────────────────
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('/profiles/{filename}', [AuthController::class, 'getProfileImage']);
+
+// Lupa Password
+Route::post('/forgot-password', [PasswordResetController::class, 'sendResetCode']);
+Route::post('/verify-reset-code', [PasswordResetController::class, 'verifyResetCode']);
+Route::post('/reset-password', [PasswordResetController::class, 'resetPassword']);
 
 // ─── Protected Routes (Sanctum) ───────────────────────────────────────────────
 Route::middleware('auth:sanctum')->group(function () {
@@ -20,6 +26,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/fcm-token', [AuthController::class, 'removeToken']);
     Route::post('/profile', [AuthController::class, 'updateProfile']);
     Route::post('/quick-access', [AuthController::class, 'updateQuickAccess']);
+    Route::post('/change-password', [PasswordResetController::class, 'changePassword']);
 
     // ─── Dosen ────────────────────────────────────────────────────────────────
     Route::prefix('dosen')->group(function () {
@@ -41,8 +48,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('mahasiswa')->group(function () {
         Route::get('/dashboard-stats', [MahasiswaController::class, 'dashboardStats']);
         Route::get('/tasks', [MahasiswaController::class, 'tasks']);
+        Route::post('/tasks', [MahasiswaController::class, 'storeTask']);
         Route::post('/tasks/join', [MahasiswaController::class, 'getTaskByCode']);
         Route::get('/tasks/{id}', [MahasiswaController::class, 'showTask']);
+        Route::put('/tasks/{id}', [MahasiswaController::class, 'updateTask']);
+        Route::delete('/tasks/{id}', [MahasiswaController::class, 'deleteTask']);
         Route::post('/tasks/{id}/submit', [MahasiswaController::class, 'submitTask']);
         Route::put('/tasks/{id}/status', [MahasiswaController::class, 'updateStatus']);
 

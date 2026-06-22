@@ -269,7 +269,7 @@ export default function Auth() {
 
                         {isLogin && (
                             <div style={{ textAlign:"right",marginTop:-8 }}>
-                                <button type="button" style={{ background:"none",border:"none",fontSize:12,fontWeight:700,color:"#4338ca",cursor:"pointer",fontFamily:"inherit" }}>Lupa password?</button>
+                                <button type="button" onClick={() => navigate('/forgot-password')} style={{ background:"none",border:"none",fontSize:12,fontWeight:700,color:"#4338ca",cursor:"pointer",fontFamily:"inherit" }}>Lupa password?</button>
                             </div>
                         )}
 

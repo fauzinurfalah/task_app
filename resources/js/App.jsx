@@ -3,6 +3,7 @@ import React from "react";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 class ErrorBoundary extends React.Component {
@@ -70,6 +71,7 @@ function App() {
             <Route path="/"         element={<Login />}    />
             <Route path="/login"    element={<Navigate to="/" replace />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
 
             {/* ── Mahasiswa Routes ── */}
             <Route path="/mahasiswa" element={<ProtectedRoute allowedRole="mahasiswa"><MahasiswaDashboard /></ProtectedRoute>} />
