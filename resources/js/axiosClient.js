@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const axiosClient = axios.create({
-    baseURL: 'http://127.0.0.1:8000/api', // Adjust if your backend port is different
+    baseURL: `${import.meta.env.VITE_API_BASE_URL}/api`, // Adjust if your backend port is different
     headers: {
         'Accept': 'application/json'
     }
