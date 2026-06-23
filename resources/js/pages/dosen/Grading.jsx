@@ -152,7 +152,7 @@ function GradingRow({ submission, index, onGradeSaved }) {
                     {submission.file ? (
                         <div style={{ marginBottom: 20 }}>
                             <label style={{ fontSize: 11, fontWeight: 800, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.5px", display: "block", marginBottom: 8 }}>File Tugas</label>
-                            <a href={`http://127.0.0.1:8000/storage/${submission.file}?download=1`} download style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 16px", background: "white", borderRadius: 12, border: "1px solid #e2e8f0", color: "#4f46e5", fontSize: 13, fontWeight: 700, textDecoration: "none", transition: "all 0.2s" }} onMouseEnter={e => e.currentTarget.style.borderColor = "#c7d2fe"} onMouseLeave={e => e.currentTarget.style.borderColor = "#e2e8f0"}>
+                            <a href={`${import.meta.env.VITE_API_BASE_URL}/storage/${submission.file}?download=1`} download style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "12px 16px", background: "white", borderRadius: 12, border: "1px solid #e2e8f0", color: "#4f46e5", fontSize: 13, fontWeight: 700, textDecoration: "none", transition: "all 0.2s" }} onMouseEnter={e => e.currentTarget.style.borderColor = "#c7d2fe"} onMouseLeave={e => e.currentTarget.style.borderColor = "#e2e8f0"}>
                                 <FileText size={16} /> {submission.file.split('/').pop()}
                             </a>
                         </div>

@@ -343,10 +343,10 @@ export default function DetailTask() {
                                                 <>
                                                     {(typeof task.attachment === 'string' && task.attachment.match(/\.(jpeg|jpg|gif|png|webp)$/i)) ? (
                                                         <div style={{ marginBottom: 16, borderRadius: 16, overflow: "hidden", border: "1px solid #e2e8f0" }}>
-                                                            <img src={`http://127.0.0.1:8000/storage/${task.attachment}`} alt="Lampiran Dosen" style={{ maxWidth: "100%", height: "auto", display: "block", maxHeight: 400, objectFit: "cover" }} />
+                                                            <img src={`${import.meta.env.VITE_API_BASE_URL}/storage/${task.attachment}`} alt="Lampiran Dosen" style={{ maxWidth: "100%", height: "auto", display: "block", maxHeight: 400, objectFit: "cover" }} />
                                                         </div>
                                                     ) : null}
-                                                    <a href={`http://127.0.0.1:8000/storage/${task.attachment}?download=1`} download target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 16, padding: "16px 20px", background: "#f8fafc", borderRadius: 16, textDecoration: "none", color: "inherit", transition: "all .2s", border: "1px solid #e2e8f0" }}
+                                                    <a href={`${import.meta.env.VITE_API_BASE_URL}/storage/${task.attachment}?download=1`} download target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 16, padding: "16px 20px", background: "#f8fafc", borderRadius: 16, textDecoration: "none", color: "inherit", transition: "all .2s", border: "1px solid #e2e8f0" }}
                                                         onMouseEnter={e => { e.currentTarget.style.background = "white"; e.currentTarget.style.borderColor = "#c7d2fe"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.05)"; }}
                                                         onMouseLeave={e => { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.borderColor = "#e2e8f0"; e.currentTarget.style.boxShadow = "none"; }}>
                                                         <div style={{ width: 44, height: 44, background: "#eef2ff", color: "#4f46e5", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
