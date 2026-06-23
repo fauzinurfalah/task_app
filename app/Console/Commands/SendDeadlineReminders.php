@@ -19,8 +19,8 @@ class SendDeadlineReminders extends Command
 {
     public function handle()
     {
-        $now = Carbon::now();
-        $this->info("Running deadline reminders at {$now->format('Y-m-d H:i:s')}");
+        $now = Carbon::now('Asia/Jakarta');
+        $this->info("Running deadline reminders at {$now->format('Y-m-d H:i:s')} WIB");
 
         $tasks = Task::where('status', 'active')
             ->where('deadline', '>=', $now->format('Y-m-d'))
